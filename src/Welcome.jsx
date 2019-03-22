@@ -9,13 +9,14 @@ export default function Welcome(props) {
     <div>
       Choose:
       <ul>
-        <li><button type="button">paste rich text</button></li>
-        <li><button type="button">paste html</button></li>
-        <li><button type="button">paste markdown</button></li>
-        <li><button type="button">upload html file</button></li>
-        <li><button type="button">upload markdown file</button></li>
+        <li><button type="button" onClick={() => navigate('/paste/richtext')}>paste rich text</button></li>
+        <li><button type="button" onClick={() => navigate('/paste/html')}>paste html</button></li>
+        <li><button type="button" onClick={() => navigate('/paste/markdown')}>paste markdown</button></li>
+        <li><button type="button" onClick={() => navigate('/upload/html')}>upload html file</button></li>
+        <li><button type="button" onClick={() => navigate('/upload/markdown')}>upload markdown file</button></li>
       </ul>
       Hi <button type="button" onClick={() => navigate('/squire')}>Squire</button>
+      <button type="button" onClick={() => navigate('/preview')}>Preview</button>
     </div>
   );
 }

@@ -9221,6 +9221,14 @@ regjsparser@^0.1.4:
   dependencies:
     jsesc "~0.5.0"
 
+rehype-dom-parse@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/rehype-dom-parse/-/rehype-dom-parse-1.0.4.tgz#9d23973ad01d03aecd0f29956d0f8561447c6d3b"
+  integrity sha512-s1+sCh7ToYCg/E/cfEP38TaukqRlYmfsr9xNGc2au9oYSR0vjlpx8InTnUH/gFwsTVg7mYO4n8B55k6WJvW3vQ==
+  dependencies:
+    hast-util-from-dom "^1.0.1"
+    xtend "^4.0.1"
+
 rehype-dom-stringify@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/rehype-dom-stringify/-/rehype-dom-stringify-1.0.4.tgz#245d15d3e76cf70ab4420313ad6ea7c0da45e876"

@@ -8,13 +8,6 @@ import { pasteRichText } from './redux/actions';
 import fixhtml from './fixhtml';
 import styles from './Squire.module.css';
 
-// eslint-disable-next-line no-unused-vars
-function fragToHTML(frag) {
-  const myDiv = document.createElement('div');
-  myDiv.appendChild(document.importNode(frag, true));
-  return myDiv.innerHTML;
-}
-
 function sanitizeToDOMFragment(dispatchPastedHTML, html, isPaste, editor) {
   // eslint-disable-next-line no-underscore-dangle
   const editorDoc = editor._doc;
@@ -47,25 +40,30 @@ class Squire extends Component {
   }
   componentDidMount() {
     this.editor = new SquireEditor(this.editorRef.current, {
+      isSetHTMLSanitized: false, // This is only used to receive pasted HTML; we're fine.
       sanitizeToDOMFragment: (...args) => sanitizeToDOMFragment(this.dispatchPastedHTML, ...args),
     });
-    this.editor.addEventListener('willPaste', e => this.handlePaste(e));
+    this.setHtmlIntoEditor();
+    this.editor.addEventListener('input', () => this.contentsChanged());
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.htmlValue !== prevProps.htmlValue) {
+      this.setHtmlIntoEditor();
+    }
   }
 
   componentWillUnmount() {
     this.editor.destroy();
   }
 
+  setHtmlIntoEditor() {
+    this.editor.setHTML(this.props.htmlValue || '');
+  }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
-  handlePaste(e) {
-    // eslint-disable-next-line no-debugger
-    // debugger;
-    // const theMarkup = parse5.serialize(myDiv);
-    // eslint-disable-next-line no-debugger
-    // debugger;
-    // eslint-disable-next-line no-console
-    // console.log(fragToHTML(e.fragment));
+  contentsChanged() {
+    const newValue = this.editor.getHTML();
+    this.props.onHtmlValueChanged(newValue);
   }
 
   render() {
@@ -79,7 +77,13 @@ class Squire extends Component {
 
 Squire.propTypes = {
   dispatch: PropTypes.func.isRequired,
+  htmlValue: PropTypes.string,
+  onHtmlValueChanged: PropTypes.func,
 };
 
+Squire.defaultProps = {
+  htmlValue: null,
+  onHtmlValueChanged: () => {},
+};
 
 export default connect()(Squire);
