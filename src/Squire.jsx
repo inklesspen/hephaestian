@@ -36,11 +36,14 @@ class Squire extends Component {
   constructor(props) {
     super(props);
     this.editorRef = React.createRef();
+    // TODO: use mapDispatch to create this, plus a 'dispatch conversion hints' action
     this.dispatchPastedHTML = html => this.props.dispatch(pasteRichText(html));
   }
   componentDidMount() {
     this.editor = new SquireEditor(this.editorRef.current, {
-      isSetHTMLSanitized: false, // This is only used to receive pasted HTML; we're fine.
+      // safe iff htmlValue only ever contains previously-sanitized HTML,
+      // such as from being pasted in.
+      isSetHTMLSanitized: false,
       sanitizeToDOMFragment: (...args) => sanitizeToDOMFragment(this.dispatchPastedHTML, ...args),
     });
     this.setHtmlIntoEditor();
