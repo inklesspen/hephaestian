@@ -11,6 +11,7 @@ export function resetStateAndHistory(history) {
 }
 
 export const pasteRichText = createAction('richText/paste');
+export const conversionNotesChanged = createAction('richText/conversionNotesChanged');
 export const htmlValueChanged = createAction('html/valueChanged');
 export const markdownValueChanged = createAction('markdown/valueChanged');
 

@@ -3,6 +3,7 @@ import h from 'hastscript';
 import zwitch from 'zwitch';
 import * as info from 'property-information';
 import mapObj from 'map-obj';
+import sst from 'space-separated-tokens';
 
 const transformNode = zwitch('type');
 
@@ -12,10 +13,21 @@ function nodes(domNodes) {
   return domNodes.map(transformNode).filter(node => !!node);
 }
 
+// TODO: use property.spaceSeparated instead of this. see css-select-hast-adapter.js
+const spaceSeparatedAttribs = [
+  'className', 'htmlFor', 'rel',
+];
+
 function mapAttribs(attribs) {
   return mapObj(
     attribs,
-    (key, value) => [info.find(info.html, key).property, value],
+    (key, value) => {
+      const newKey = info.find(info.html, key).property;
+      if (spaceSeparatedAttribs.includes(newKey)) {
+        return [newKey, sst.parse(value)];
+      }
+      return [newKey, value];
+    },
   );
 }
 

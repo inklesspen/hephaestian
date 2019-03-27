@@ -4,11 +4,11 @@ import { connect } from 'react-redux';
 import SquireEditor from 'squire-rte';
 import DOMPurify from 'dompurify';
 
-import { pasteRichText } from './redux/actions';
-import fixhtml from './fixhtml';
+import { pasteRichText, conversionNotesChanged } from './redux/actions';
+import fixhtml from './processing/fixhtml';
 import styles from './Squire.module.css';
 
-function sanitizeToDOMFragment(dispatchPastedHTML, html, isPaste, editor) {
+function sanitizeToDOMFragment(dispatchPastedHTML, dispatchConversionNotes, html, isPaste, editor) {
   // eslint-disable-next-line no-underscore-dangle
   const editorDoc = editor._doc;
 
@@ -36,15 +36,16 @@ class Squire extends Component {
   constructor(props) {
     super(props);
     this.editorRef = React.createRef();
-    // TODO: use mapDispatch to create this, plus a 'dispatch conversion hints' action
-    this.dispatchPastedHTML = html => this.props.dispatch(pasteRichText(html));
   }
   componentDidMount() {
     this.editor = new SquireEditor(this.editorRef.current, {
       // safe iff htmlValue only ever contains previously-sanitized HTML,
       // such as from being pasted in.
       isSetHTMLSanitized: false,
-      sanitizeToDOMFragment: (...args) => sanitizeToDOMFragment(this.dispatchPastedHTML, ...args),
+      sanitizeToDOMFragment: (...args) => sanitizeToDOMFragment(
+        this.props.pasteRichText, this.props.conversionNotesChanged,
+        ...args,
+      ),
     });
     this.setHtmlIntoEditor();
     this.editor.addEventListener('input', () => this.contentsChanged());
@@ -79,7 +80,8 @@ class Squire extends Component {
 }
 
 Squire.propTypes = {
-  dispatch: PropTypes.func.isRequired,
+  pasteRichText: PropTypes.func.isRequired,
+  conversionNotesChanged: PropTypes.func.isRequired,
   htmlValue: PropTypes.string,
   onHtmlValueChanged: PropTypes.func,
 };
@@ -89,4 +91,9 @@ Squire.defaultProps = {
   onHtmlValueChanged: () => {},
 };
 
-export default connect()(Squire);
+const actionCreators = {
+  pasteRichText,
+  conversionNotesChanged,
+};
+
+export default connect(null, actionCreators)(Squire);
