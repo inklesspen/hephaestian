@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import CSSselect from 'css-select';
 import css from 'css';
+import color from 'color';
 import colorString from 'color-string';
 import colorDiff from 'color-diff';
 
@@ -215,6 +216,9 @@ export function makeSingleDeclarationSingleClassForm(hast) {
   *  - if someone uses boldface or italics for normal body text, the answer is don't do that
   *  - detect majority margins, and then use that to detect blockquotes
   * detect "default" font settings and remove
+  *  - find default font-size, set to 1 em, and set everything else to multiples of 1 em
+  *  - if the incoming font-sizes are in em, leave them as they are and may god have mercy
+  *  - otherwise use convert-css-length and parse-unit
   * attempt to detect monospace fonts
   * normalize colors into hex format
   * bump any class up to the parent element, if 2/3 or more coverage
@@ -227,16 +231,16 @@ function removeClasses(node, removeClassNames) {
     .filter(className => !removeClassNames.includes(className));
 }
 
+const removePropertiesFromHeaders = ['font-size', 'font-weight', 'font-style'];
 export function cleanupHeadingStyles(hast) {
   // gdocs headings use both h1/h2/h3 and font stylings; remove certain font styles inside headings
-  const removeDeclarations = ['font-size', 'font-weight', 'font-style'];
   // css stylesheet is first child of first node
   const stylesheet = css.parse(hast.children[0].children[0].value);
   const removeClassSelectors = stylesheet.stylesheet.rules
     // these styles are in single class, single declaration format. pair up classes and properties
     .map(r => [r.selectors[0], r.declarations[0].property])
     // limit to properties that we want to remove
-    .filter(p => removeDeclarations.includes(p[1]))
+    .filter(p => removePropertiesFromHeaders.includes(p[1]))
     // get just the classes; note these are actually class selectors, so .-prefixed
     .map(p => p[0]);
   const removeClassNames = removeClassSelectors.map(s => s.substring(1));
@@ -290,6 +294,139 @@ export function normalizeFontWeights(hast) {
     });
     stylesheet.stylesheet.rules.push(...styleMap.rules);
     draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function normalizeFontSizes(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    // determine character count for each size rule, find default
+    // convert that default to 1em and normalize everything else around it
+    const totalCharacterCount = charactersInNode(draftHast.children[1]);
+    const styleMap = new StyleMap();
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    const fontSizeRules = stylesheet.stylesheet.rules
+      .filter(rule => (rule.declarations[0].property === 'font-size'));
+    stylesheet.stylesheet.rules.push(...styleMap.rules);
+    draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function removeDefaultFontFamily(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    const fontFamilyRules = stylesheet.stylesheet.rules
+      .filter(rule => (rule.declarations[0].property === 'font-family'));
+    const families = {};
+    fontFamilyRules.forEach((rule) => {
+      const familyName = rule.declarations[0].value;
+      if (!families[familyName]) {
+        families[familyName] = {
+          selectors: [],
+          classes: [],
+          characterCount: 0,
+        };
+      }
+      const familyEntry = families[familyName];
+      familyEntry.selectors.push(rule.selectors[0]);
+      familyEntry.classes.push(rule.selectors[0].substring(1));
+    });
+    const totalCharacterCount = charactersInNode(draftHast.children[1]);
+    Object.values(families).forEach((familyEntry) => {
+      const selector = familyEntry.selectors.join(',');
+      familyEntry.characterCount = cssSelect.query(selector, draftHast.children[1])
+        .map(charactersInNode).reduce(sumReducer, 0);
+    });
+    const defaultFamilies = Object.values(families)
+      .filter(familyEntry => ((familyEntry.characterCount / totalCharacterCount) > 0.75));
+    if (defaultFamilies.length === 1) {
+      // we have our default!
+      const familyEntry = defaultFamilies[0];
+      const selector = familyEntry.selectors.join(',');
+      cssSelect.query(selector, draftHast.children[1]).forEach((node) => {
+        removeClasses(node, familyEntry.classes);
+      });
+    }
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function removeDefaultColor(hast) {
+  // a default color is either 000000 or FFFFFF
+  // if you use another color for your body text you are an affront to god
+  // but we do need to account for different ways of expressing color,
+  // which is why the color library is here
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    const colorRules = { white: [], black: [] };
+    stylesheet.stylesheet.rules
+      .filter(rule => (rule.declarations[0].property === 'color'))
+      // prefix with the hex-conversion of the color
+      .map(rule => [color(rule.declarations[0].value).hex(), rule])
+      // only black or white please
+      .filter(pair => ['#000000', '#FFFFFF'].includes(pair[0]))
+      .forEach((pair) => {
+        colorRules[(pair[0] === '#000000' ? 'black' : 'white')].push(pair[1]);
+      });
+    const totalCharacterCount = charactersInNode(draftHast.children[1]);
+    const colorCharacterCounts = { white: 0, black: 0 };
+    ['black', 'white'].forEach((colorName) => {
+      const selector = colorRules[colorName].flatMap(rule => rule.selectors[0]).join(',');
+      colorCharacterCounts[colorName] = cssSelect.query(selector, draftHast.children[1], true, true)
+        .map(charactersInNode).reduce(sumReducer, 0);
+    });
+    let defaultColorName = null;
+    // black takes precedence; this ain't chess
+    ['black', 'white'].forEach((colorName) => {
+      if ((colorCharacterCounts[colorName] / totalCharacterCount > 0.75)) {
+        defaultColorName = colorName;
+      }
+    });
+    if (defaultColorName) {
+      const selector = colorRules[defaultColorName].flatMap(rule => rule.selectors[0]).join(',');
+      const classNames = colorRules[defaultColorName]
+        .flatMap(rule => rule.selectors[0].substring(1));
+      cssSelect.query(selector, draftHast.children[1]).forEach((node) => {
+        removeClasses(node, classNames);
+      });
+    }
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+const upPropagateProperties = [
+  'font-size', 'font-weight', 'font-style',
+  'font-family',
+  'text-decoration', // underline/strikethru
+  'color',
+];
+
+export function upPropagateStyles(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    const upPropagateRules = stylesheet.stylesheet.rules
+      .filter(rule => upPropagateProperties.includes(rule.declarations[0].property));
+    const upPropagateSelectors = upPropagateRules.map(rule => rule.selectors[0]);
+    const selectorClassMap = new Map(upPropagateProperties.map(s => [s, s.substring(1)]));
+    // if all children of a parent have a class, move that class to the parent
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function makeBisuNodes(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
     /* eslint-enable no-param-reassign */
   });
   return nextHast;

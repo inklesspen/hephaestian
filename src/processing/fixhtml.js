@@ -16,6 +16,7 @@ import {
   charactersInNode, extractTextNodes, filterStyles,
   inlineStylesToClassSelectorStyles, makeSingleDeclarationSingleClassForm,
   cleanupHeadingStyles, normalizeFontWeights, makeStylesInline,
+  removeDefaultFontFamily, removeDefaultColor,
 } from './styles';
 import { cssSelect } from './util';
 
@@ -155,6 +156,8 @@ window.unifiedResources = {
   inlineStylesToClassSelectorStyles,
   makeSingleDeclarationSingleClassForm,
   cleanupHeadingStyles,
+  removeDefaultFontFamily,
+  removeDefaultColor,
   normalizeFontWeights,
   makeStylesInline,
 };
