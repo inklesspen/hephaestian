@@ -12,7 +12,11 @@ import hastUtilSelect from 'hast-util-select';
 import css from 'css';
 import dotProp from 'dot-prop';
 
-import { charactersInNode, extractTextNodes, filterStyles, inlineStylesToClassSelectorStyles, makeSingleDeclarationSingleClassForm } from './styles';
+import {
+  charactersInNode, extractTextNodes, filterStyles,
+  inlineStylesToClassSelectorStyles, makeSingleDeclarationSingleClassForm,
+  cleanupHeadingStyles, normalizeFontWeights, makeStylesInline,
+} from './styles';
 import { cssSelect } from './util';
 
 // import hastUtilFromHtmlparser2 from '../htmlparser2-utils/hast-util-from-htmlparser2';
@@ -150,4 +154,7 @@ window.unifiedResources = {
   extractTextNodes,
   inlineStylesToClassSelectorStyles,
   makeSingleDeclarationSingleClassForm,
+  cleanupHeadingStyles,
+  normalizeFontWeights,
+  makeStylesInline,
 };

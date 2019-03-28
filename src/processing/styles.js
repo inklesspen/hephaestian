@@ -30,11 +30,13 @@ const shorthandProperties = [
 ];
 
 const propertyWhitelist = [
-  'text-align',
-  'color',
-  'font-family', 'font-size', 'font-weight', 'font-style',
+  // Order is important because some processing code will consider properties in this order
+  'font-size', 'font-weight', 'font-style',
+  'font-family',
   'text-decoration', // underline/strikethru
   'margin-left', 'margin-right', // blockquotes
+  'text-align',
+  'color',
 ];
 
 function allowDeclaration(d) {
@@ -85,24 +87,6 @@ export function filterStyles(hast) {
   });
   return nextHast;
 }
-
-/* TODOs
-  *
-  * detect font weights and sizes and convert to heading tags, bold tags, etc
-  *  - gdocs headings use both h1/h2/h3 and font stylings.
-  *  - squire converts:
-  *    - font-weight: bold, font-weight: 700 (just that value) to <b>
-  *    - font-style: italic to <i>
-  *    - text-decoration: underline to <u>
-  *  - so we convert font-weight: normal to 400, and bold to 700
-  *  - then find the body font-weight and normalize.
-  * detect "default" font settings and remove
-  * attempt to detect monospace fonts
-  * normalize colors into hex format
-  * bump any class up to the parent element, if 2/3 or more coverage
-  * materialize declarations back into style attrs
-  * eventually default to stripping color, controlled by option
-  */
 
 const sumReducer = (accumulator, currentValue) => accumulator + currentValue;
 
@@ -216,6 +200,119 @@ export function makeSingleDeclarationSingleClassForm(hast) {
       });
     });
     draftHast.children.unshift(styleMap.getStyleElement());
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+/* TODOs
+  *
+  * detect font weights and sizes and convert to heading tags, bold tags, etc
+  *  - squire converts:
+  *    - font-weight: bold, font-weight: 700 (just that value) to <b>
+  *    - font-style: italic to <i>
+  *    - text-decoration: underline to <u>
+  *  - if someone uses boldface or italics for normal body text, the answer is don't do that
+  *  - detect majority margins, and then use that to detect blockquotes
+  * detect "default" font settings and remove
+  * attempt to detect monospace fonts
+  * normalize colors into hex format
+  * bump any class up to the parent element, if 2/3 or more coverage
+  * eventually default to stripping color, controlled by option
+  */
+
+function removeClasses(node, removeClassNames) {
+  // eslint-disable-next-line no-param-reassign
+  node.properties.className = node.properties.className
+    .filter(className => !removeClassNames.includes(className));
+}
+
+export function cleanupHeadingStyles(hast) {
+  // gdocs headings use both h1/h2/h3 and font stylings; remove certain font styles inside headings
+  const removeDeclarations = ['font-size', 'font-weight', 'font-style'];
+  // css stylesheet is first child of first node
+  const stylesheet = css.parse(hast.children[0].children[0].value);
+  const removeClassSelectors = stylesheet.stylesheet.rules
+    // these styles are in single class, single declaration format. pair up classes and properties
+    .map(r => [r.selectors[0], r.declarations[0].property])
+    // limit to properties that we want to remove
+    .filter(p => removeDeclarations.includes(p[1]))
+    // get just the classes; note these are actually class selectors, so .-prefixed
+    .map(p => p[0]);
+  const removeClassNames = removeClassSelectors.map(s => s.substring(1));
+  const selector = `:matches(h1,h2,h3,h4,h5,h6) :matches(${removeClassSelectors.join(',')})`;
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    cssSelect.query(selector, draftHast).forEach((node) => {
+      removeClasses(node, removeClassNames);
+    });
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function normalizeFontWeights(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const styleMap = new StyleMap();
+    const newNormalWeightClass = styleMap.addStyle('font-weight: normal');
+    const newBoldWeightClass = styleMap.addStyle('font-weight: bold');
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    const fontWeightRules = stylesheet.stylesheet.rules
+      .filter(rule => (rule.declarations[0].property === 'font-weight'));
+    const normalWeightClassSelectors = [];
+    const boldWeightClassSelectors = [];
+    fontWeightRules.forEach((rule) => {
+      // eslint-disable-next-line prefer-destructuring
+      const value = rule.declarations[0].value;
+      const selector = rule.selectors[0];
+      if (value === 'normal') {
+        normalWeightClassSelectors.push(selector);
+      } else if (value === 'bold') {
+        boldWeightClassSelectors.push(selector);
+      } else {
+        const intWeight = parseInt(value, 10);
+        (intWeight < 600 ? normalWeightClassSelectors : boldWeightClassSelectors).push(selector);
+      }
+    });
+    cssSelect.query(normalWeightClassSelectors.join(','), draftHast).forEach((node) => {
+      node.properties.className.push(newNormalWeightClass);
+    });
+    cssSelect.query(boldWeightClassSelectors.join(','), draftHast).forEach((node) => {
+      node.properties.className.push(newBoldWeightClass);
+    });
+    stylesheet.stylesheet.rules = stylesheet.stylesheet.rules.filter((rule) => {
+      const selector = rule.selectors[0];
+      return !(
+        normalWeightClassSelectors.includes(selector)
+        || boldWeightClassSelectors.includes(selector)
+      );
+    });
+    stylesheet.stylesheet.rules.push(...styleMap.rules);
+    draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
+
+export function makeStylesInline(hast) {
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheetNode = draftHast.children.shift();
+    const stylesheet = css.parse(stylesheetNode.children[0].value);
+    stylesheet.stylesheet.rules.forEach((rule) => {
+      const inlineStyleString = extractDeclarationText(rule.declarations[0]);
+      cssSelect.query(rule.selectors[0], draftHast).forEach((node) => {
+        if (!node.properties.style) node.properties.style = '';
+        node.properties.style += inlineStyleString;
+      });
+    });
+    utilVisit(draftHast, (node, index, parent) => {
+      if (isElement(node) && hasProperty(node, 'className')) {
+        delete node.properties.className;
+      }
+      return utilVisit.CONTINUE;
+    });
     /* eslint-enable no-param-reassign */
   });
   return nextHast;
