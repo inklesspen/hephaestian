@@ -13,7 +13,7 @@ function Header(props) {
       <div>hephaestian is a tool to format fanfics for posting on various sites</div>
       <div>
         <button type="button" onClick={() => props.history.push('/bug')}>Report a bug</button>
-        <button type="button" onClick={() => props.history.push('/pasteHistory')}>Show Paste History</button>
+        <button type="button" onClick={() => props.history.push('/pasteHistory')}>Show Last Pasted Rich Text</button>
         <button type="button" onClick={() => props.dispatch(resetStateAndHistory(props.history))}>Reset</button>
       </div>
     </div>

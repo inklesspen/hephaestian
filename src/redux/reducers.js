@@ -3,8 +3,8 @@ import { combineReducers } from 'redux';
 
 import { resetState, pasteRichText, htmlValueChanged, markdownValueChanged } from './actions';
 
-const pastedRichText = createReducer([], {
-  [pasteRichText]: (state, action) => [...state, action.payload],
+const pastedRichText = createReducer(null, {
+  [pasteRichText]: (state, action) => action.payload,
 });
 
 const activeFormat = createReducer(null, {

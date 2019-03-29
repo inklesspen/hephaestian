@@ -4,22 +4,19 @@ import { connect } from 'react-redux';
 import styles from './PasteHistory.module.css';
 
 function PasteHistory(props) {
-  const pastes = props.pastes.map(pastedHtml => (
-    <div className={styles.PasteHistoryEntry}>
-      <textarea value={pastedHtml} readOnly />
-    </div>
-  ));
   return (
     <div>
-      {pastes}
+      <div className={styles.PasteHistoryEntry}>
+        <textarea value={props.pasted} readOnly />
+      </div>
     </div>
   );
 }
 
 PasteHistory.propTypes = {
-  pastes: PropTypes.arrayOf(PropTypes.string).isRequired,
+  pasted: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = state => ({ pastes: state.pastedRichText });
+const mapStateToProps = state => ({ pasted: state.pastedRichText });
 
 export default connect(mapStateToProps)(PasteHistory);
