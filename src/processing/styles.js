@@ -206,9 +206,14 @@ export function makeSingleDeclarationSingleClassForm(hast) {
   return nextHast;
 }
 
-/* TODOs
+/** TODOs
   *
   * detect font weights and sizes and convert to heading tags, bold tags, etc
+  *  - Scrivener copy-paste implements headings with font-size styles and <b> tags
+  *  - convert <b>/<i>/etc tags into corresponding styles
+  *  - Assume anything with a size style and bold style covering the whole contents
+  *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
+  *    determine priority.
   *  - squire converts:
   *    - font-weight: bold, font-weight: 700 (just that value) to <b>
   *    - font-style: italic to <i>
