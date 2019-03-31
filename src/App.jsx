@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Route, Switch } from 'react-router-dom';
 import Header from './Header';
 import Welcome from './Welcome';
+import About from './About';
 import PasteRichText from './PasteRichText';
 import PasteHistory from './PasteHistory';
 import RichTextPreview from './RichTextPreview';
@@ -15,6 +16,7 @@ export default class App extends Component {
       <div className={styles.App}>
         <Header />
         <Route exact path="/" component={Welcome} />
+        <Route path="/about" component={About} />
 
         <Switch>
           <Route path="/paste/richtext" component={PasteRichText} />
