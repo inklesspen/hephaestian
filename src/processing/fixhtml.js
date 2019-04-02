@@ -13,11 +13,11 @@ import css from 'css';
 import dotProp from 'dot-prop';
 
 import {
-  charactersInNode, extractTextNodes, filterStyles,
-  inlineStylesToClassSelectorStyles, makeSingleDeclarationSingleClassForm,
-  cleanupHeadingStyles, normalizeFontWeights, makeStylesInline,
-  removeDefaultFontFamily, removeDefaultColor,
+  filterStyles,
+// eslint-disable-next-line import/no-duplicates
 } from './styles';
+// eslint-disable-next-line import/no-duplicates
+import * as styleFuncs from './styles';
 import { cssSelect } from './util';
 
 // import hastUtilFromHtmlparser2 from '../htmlparser2-utils/hast-util-from-htmlparser2';
@@ -151,13 +151,5 @@ window.unifiedResources = {
   produce,
   cssSelect,
   css,
-  charactersInNode,
-  extractTextNodes,
-  inlineStylesToClassSelectorStyles,
-  makeSingleDeclarationSingleClassForm,
-  cleanupHeadingStyles,
-  removeDefaultFontFamily,
-  removeDefaultColor,
-  normalizeFontWeights,
-  makeStylesInline,
+  ...styleFuncs,
 };
