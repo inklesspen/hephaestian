@@ -58,7 +58,6 @@ function inplaceFilterRule(rule) {
   rule.declarations = filtered;
 }
 
-// eslint-disable-next-line import/prefer-default-export
 export function filterStyles(hast) {
   const nextHast = produce(hast, (draftHast) => {
     /* eslint-disable no-param-reassign */
