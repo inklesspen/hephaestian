@@ -209,7 +209,6 @@ export function makeSingleDeclarationSingleClassForm(hast) {
   *
   * detect font weights and sizes and convert to heading tags, bold tags, etc
   *  - Scrivener copy-paste implements headings with font-size styles and <b> tags
-  *  - convert <b>/<i>/etc tags into corresponding styles
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
@@ -228,6 +227,32 @@ export function makeSingleDeclarationSingleClassForm(hast) {
   * bump any class up to the parent element, if 2/3 or more coverage
   * eventually default to stripping color, controlled by option
   */
+
+const bisuStyleMap = {
+  b: 'font-weight: bold',
+  i: 'font-style: italic',
+  s: 'text-decoration: line-through',
+  u: 'text-decoration: underline',
+};
+
+export function convertBisuToStyles(hast) {
+  // bold, italic, strikethru, underline
+  const styleMap = new StyleMap();
+  const selector = Object.keys(bisuStyleMap).join(',');
+  const nextHast = produce(hast, (draftHast) => {
+    /* eslint-disable no-param-reassign */
+    const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    cssSelect.query(selector, draftHast).forEach((node) => {
+      const classList = hastClassList(node);
+      classList.add(styleMap.addStyle(bisuStyleMap[node.tagName]));
+      node.tagName = 'span';
+    });
+    stylesheet.stylesheet.rules.push(...styleMap.rules);
+    draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
+    /* eslint-enable no-param-reassign */
+  });
+  return nextHast;
+}
 
 function removeClasses(node, removeClassNames) {
   // eslint-disable-next-line no-param-reassign
@@ -428,9 +453,11 @@ export function upPropagateStyles(hast) {
 }
 
 export function makeBisuNodes(hast) {
+  // bold, italic, strikethru, underline
   const nextHast = produce(hast, (draftHast) => {
     /* eslint-disable no-param-reassign */
     const stylesheet = css.parse(draftHast.children[0].children[0].value);
+    // TODO: finish implementing
     /* eslint-enable no-param-reassign */
   });
   return nextHast;
