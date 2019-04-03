@@ -13,7 +13,6 @@ import isElement from 'hast-util-is-element';
 import hasProperty from 'hast-util-has-property';
 import compareFunc from 'compare-func';
 import hastClassList from 'hast-util-class-list';
-import gud from 'gud';
 import expandShorthand from 'css-shorthand-expand';
 
 import { cssSelect } from './util';
@@ -31,7 +30,6 @@ const shorthandProperties = [
 ];
 
 const propertyWhitelist = [
-  // Order is important because some processing code will consider properties in this order
   'font-size', 'font-weight', 'font-style',
   'font-family',
   'text-decoration', // underline/strikethru
@@ -44,10 +42,20 @@ function allowDeclaration(d) {
   return propertyWhitelist.includes(d.property);
 }
 
+export const cssScript = {};
+cssScript.d = (property, value) => ({ type: 'declaration', property, value });
+cssScript.rmulti = (selector, declarations) => ({
+  type: 'rule',
+  selectors: [selector],
+  declarations,
+});
+cssScript.r = (selector, declaration) => cssScript.rmulti(selector, [declaration]);
+
+
 function expandShorthandDeclaration(d) {
   if (!shorthandProperties.includes(d.property)) return d;
   return Object.entries(expandShorthand(d.property, d.value))
-    .map(([property, value]) => ({ type: 'declaration', property, value }));
+    .map(([property, value]) => cssScript.d(property, value));
 }
 
 function inplaceFilterRule(rule) {
@@ -56,6 +64,11 @@ function inplaceFilterRule(rule) {
   filtered.sort(compareFunc('property')); // inplace sort
   // eslint-disable-next-line no-param-reassign
   rule.declarations = filtered;
+}
+
+function filterClassList(node, predicate) {
+  // eslint-disable-next-line no-param-reassign
+  node.properties.className = node.properties.className.filter(predicate);
 }
 
 export function filterStyles(hast) {
@@ -116,93 +129,121 @@ const makeEmptyStylesheet = () => ({ type: 'stylesheet', stylesheet: { rules: []
 
 function extractDeclarationText(declaration) {
   const sheet = makeEmptyStylesheet();
-  sheet.stylesheet.rules.push({
-    type: 'rule',
-    selectors: ['.someclass'],
-    declarations: [declaration],
-  });
+  sheet.stylesheet.rules.push(cssScript.r('.someclass', declaration));
   const ruleString = css.stringify(sheet, { compress: true });
   return extractDirectivesAndValues(ruleString);
 }
 
-class StyleMap {
-  constructor() {
+function stripPositionInfo(rule) {
+  /* eslint-disable no-param-reassign */
+  return produce(rule, (draftRule) => {
+    delete draftRule.position;
+    draftRule.declarations.forEach((d) => {
+      delete d.position;
+    });
+  });
+  /* eslint-enable no-param-reassign */
+}
+
+class StylesheetManager {
+  constructor(sheetString) {
     this.stylesheetContainer = makeEmptyStylesheet();
+    if (sheetString) {
+      this.importSheetString(sheetString);
+    }
+  }
+  importSheetString(sheetString) {
+    const parsed = css.parse(sheetString);
+    const newRules = parsed.stylesheet.rules.map(stripPositionInfo);
+    this.stylesheetContainer.stylesheet.rules.push(...newRules);
+  }
+  stringify(compress = true) {
+    return css.stringify(this.stylesheetContainer, { compress });
+  }
+  getStyleElement(compress = true) {
+    const value = this.stringify(compress);
+    return hastscript('style', { type: 'text/css' }, value);
+  }
+}
+
+class StyleMap extends StylesheetManager {
+  constructor(counterStart = 0) {
+    super();
     this.rules = this.stylesheetContainer.stylesheet.rules;
     this.classes = {};
     this.styleStrings = {};
+    this.classNameCounter = counterStart;
+  }
+  makeClassName() {
+    this.classNameCounter += 1;
+    return `hephaestian-style-${this.classNameCounter}`;
   }
 
   addStyle(styleString) {
     if (styleString in this.styleStrings) {
       return this.styleStrings[styleString];
     }
-    const newClassName = `hephaestian-style-${gud()}`;
+    const newClassName = this.makeClassName();
     this.classes[newClassName] = styleString;
     this.styleStrings[styleString] = newClassName;
     const parsed = css.parse(`.${newClassName} {${styleString}}`);
-    this.rules.push(parsed.stylesheet.rules[0]);
+    this.rules.push(stripPositionInfo(parsed.stylesheet.rules[0]));
     return newClassName;
-  }
-
-  getStyleElement() {
-    const value = css.stringify(this.stylesheetContainer, { compress: true });
-    // const value = css.stringify(this.stylesheetContainer);
-    return hastscript('style', { type: 'text/css' }, value);
   }
 }
 
-export function inlineStylesToClassSelectorStyles(hast) {
-  const nextHast = produce(hast, (draftHast) => {
-    const styleMap = new StyleMap();
-    /* eslint-disable no-param-reassign */
-    utilVisit(draftHast, (node, index, parent) => {
+export class StyleWorkspace {
+  constructor(hast) {
+    this.hast = hast;
+    this.styleMap = new StyleMap();
+  }
+
+  cycleStyleMap() {
+    const oldStyleMap = this.styleMap;
+    this.styleMap = new StyleMap(oldStyleMap.classNameCounter);
+    return oldStyleMap.stringify();
+  }
+
+  inlineStylesToClassSelectorStyles() {
+    utilVisit(this.hast, (node, index, parent) => {
       if (isElement(node) && hasProperty(node, 'style')) {
         const classList = hastClassList(node);
-        classList.add(styleMap.addStyle(node.properties.style));
+        classList.add(this.styleMap.addStyle(node.properties.style));
+        // eslint-disable-next-line no-param-reassign
         delete node.properties.style;
       }
       return utilVisit.CONTINUE;
     });
-    draftHast.children.unshift(styleMap.getStyleElement());
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
+  }
 
-export function makeSingleDeclarationSingleClassForm(hast) {
-  const nextHast = produce(hast, (draftHast) => {
-    const styleNodes = [];
-    const styleMap = new StyleMap();
-    /* eslint-disable no-param-reassign */
-    utilVisit(draftHast, (node, index, parent) => {
+  makeSingleDeclarationSingleClassForm() {
+    const sheet = new StylesheetManager(this.cycleStyleMap());
+    utilVisit(this.hast, (node, index, parent) => {
       if (isElement(node, 'style')) {
-        styleNodes.push(immerOriginal(node));
+        sheet.importSheetString(node.children[0].value);
         parent.children.splice(index, 1);
         return index;
       }
       return utilVisit.CONTINUE;
     });
-    styleNodes.forEach((styleNode) => {
-      const styleNodeText = styleNode.children[0].value;
-      const parsed = css.parse(styleNodeText);
-      parsed.stylesheet.rules.forEach((rule) => {
-        rule.selectors.forEach((selector) => {
-          rule.declarations.forEach((declaration) => {
-            const declarationText = extractDeclarationText(declaration);
-            const newClass = styleMap.addStyle(declarationText);
-            cssSelect.query(selector, draftHast).forEach((node) => {
-              const classList = hastClassList(node);
-              classList.add(newClass);
-            });
+    sheet.stylesheetContainer.stylesheet.rules.forEach((rule) => {
+      rule.selectors.forEach((selector) => {
+        rule.declarations.forEach((declaration) => {
+          const declarationText = extractDeclarationText(declaration);
+          const newClass = this.styleMap.addStyle(declarationText);
+          cssSelect.query(selector, this.hast).forEach((node) => {
+            const classList = hastClassList(node);
+            classList.add(newClass);
           });
         });
       });
     });
-    draftHast.children.unshift(styleMap.getStyleElement());
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
+    const allowedClasses = Object.keys(this.styleMap.classes);
+    const test = node => isElement(node) && hasProperty(node, 'className');
+    utilVisit(this.hast, test, (node, index, parent) => {
+      filterClassList(node, className => allowedClasses.includes(className));
+    });
+  }
 }
 
 /** TODOs
@@ -255,9 +296,7 @@ export function convertBisuToStyles(hast) {
 }
 
 function removeClasses(node, removeClassNames) {
-  // eslint-disable-next-line no-param-reassign
-  node.properties.className = node.properties.className
-    .filter(className => !removeClassNames.includes(className));
+  filterClassList(node, className => !removeClassNames.includes(className));
 }
 
 const removePropertiesFromHeaders = ['font-size', 'font-weight', 'font-style'];
