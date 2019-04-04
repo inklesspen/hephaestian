@@ -13,7 +13,7 @@ import css from 'css';
 import dotProp from 'dot-prop';
 
 import {
-  filterStyles,
+  StyleWorkspace,
 // eslint-disable-next-line import/no-duplicates
 } from './styles';
 // eslint-disable-next-line import/no-duplicates
@@ -127,11 +127,22 @@ export default function fixhtml(html, doc) {
     .use(rehypeDomStringify, { fragment: true });
   let hast = processor.parse(html);
   hast = pruneNonElementRoots(hast);
-  hast = filterStyles(hast);
   // TODO: convert these into transformers
   if (detectGoogleDocs(hast)) {
     hast = fixGoogleDocs(hast, doc);
   }
+  hast = produce(hast, (draftHast) => {
+    const ws = new StyleWorkspace(draftHast);
+    ws.inlineStylesToClassSelectorStyles();
+    ws.makeSingleDeclarationSingleClassForm();
+    ws.filterStyleProperties();
+    ws.cleanupHeadingStyles();
+    ws.cleanupListItemStyles();
+    ws.normalizeLeftMargins();
+    ws.normalizeFontWeights();
+    ws.convertStylesToBisu();
+    ws.makeStylesInline();
+  });
   window.lastHast = hast;
   return processor.stringify(hast);
 }

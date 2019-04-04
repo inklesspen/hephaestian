@@ -77,36 +77,6 @@ function removeClasses(node, removeClassNames) {
   filterClassNameList(node, className => !removeClassNames.includes(className));
 }
 
-export function filterStyles(hast) {
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    utilVisit(draftHast, (node, index, parent) => {
-      if (isElement(node) && node.properties.style) {
-        const styleString = `${node.tagName} {${node.properties.style}}`;
-        const parsed = css.parse(styleString);
-        const rule = parsed.stylesheet.rules[0]; // there's only one
-        inplaceFilterRule(rule);
-        const ruleString = css.stringify(parsed, { compress: true });
-        const newStyleAttr = extractDirectivesAndValues(ruleString);
-        if (newStyleAttr) {
-          node.properties.style = newStyleAttr;
-        } else {
-          delete node.properties.style;
-        }
-      }
-      if (isElement(node, 'style')) {
-        const styleString = node.children[0].value;
-        const parsed = css.parse(styleString);
-        parsed.stylesheet.rules.forEach((rule) => { inplaceFilterRule(rule); });
-        node.children[0].value = css.stringify(parsed, { compress: true });
-      }
-      return utilVisit.CONTINUE;
-    });
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
-
 const sumReducer = (accumulator, currentValue) => accumulator + currentValue;
 
 export function charactersInNode(node) {
@@ -258,7 +228,7 @@ export class StyleWorkspace {
   narrowToBodyNode() {
     const bodyNode = utilFind(this.hast, node => isElement(node, 'body'));
     if (bodyNode) {
-      this.hast = uscript('root', [bodyNode]);
+      this.hast.children = [bodyNode];
     }
   }
 
@@ -270,6 +240,42 @@ export class StyleWorkspace {
       rule.declarations = filtered;
     });
     this.styleMap.rules = this.styleMap.rules.filter(rule => rule.declarations.length > 0);
+  }
+
+  cleanupHeadingStyles() {
+    // gdocs headings use both h1/h2/h3 and font stylings;
+    // so remove certain font styles inside headings
+    const removePropertiesFromHeaders = ['font-size', 'font-weight', 'font-style'];
+    const removeClassSelectors = this.styleMap.rules
+      // these styles are in single class, single declaration format. pair up classes and properties
+      .map(r => [r.selectors[0], r.declarations[0].property])
+      // limit to properties that we want to remove
+      .filter(p => removePropertiesFromHeaders.includes(p[1]))
+      // get just the classes; note these are actually class selectors, so .-prefixed
+      .map(p => p[0]);
+    const removeClassNames = removeClassSelectors.map(s => s.substring(1));
+    const selector = `:matches(h1,h2,h3,h4,h5,h6) :matches(${removeClassSelectors.join(',')})`;
+    cssSelect.query(selector, this.hast).forEach((node) => {
+      filterClassNameList(node, className => !removeClassNames.includes(className));
+      removeClasses(node, removeClassNames);
+    });
+  }
+
+  cleanupListItemStyles() {
+    // gdocs puts margin-left on <li> tags; this throws off normalizeLeftMargins
+    const removeClassSelectors = this.styleMap.rules
+      // these styles are in single class, single declaration format. pair up classes and properties
+      .map(r => [r.selectors[0], r.declarations[0].property])
+      // limit to properties that we want to remove
+      .filter(p => p[1] === 'margin-left')
+      // get just the classes; note these are actually class selectors, so .-prefixed
+      .map(p => p[0]);
+    const removeClassNames = removeClassSelectors.map(s => s.substring(1));
+    const selector = `li:matches(${removeClassSelectors.join(',')})`;
+    cssSelect.query(selector, this.hast).forEach((node) => {
+      filterClassNameList(node, className => !removeClassNames.includes(className));
+      removeClasses(node, removeClassNames);
+    });
   }
 
   normalizeLeftMargins() {
@@ -462,90 +468,18 @@ export class StyleWorkspace {
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
-  *  - squire converts:
-  *    - font-weight: bold, font-weight: 700 (just that value) to <b>
-  *    - font-style: italic to <i>
-  *    - text-decoration: underline to <u>
-  *  - if someone uses boldface or italics for normal body text, the answer is don't do that
-  *  - detect majority margins, and then use that to detect blockquotes
   * detect "default" font settings and remove
   *  - find default font-size, set to 1 em, and set everything else to multiples of 1 em
   *  - if the incoming font-sizes are in em, leave them as they are and may god have mercy
   *  - otherwise use convert-css-length and parse-unit
-  * attempt to detect monospace fonts
-  * normalize colors into hex format
+  * attempt to detect monospace fonts?
+  * normalize colors into hex format?
   * bump any class up to the parent element, if 2/3 or more coverage
   * eventually default to stripping color, controlled by option
+  * strip font-weight: normal and font-style: normal, after other processing complete
+  * vertical-align:super; and vertical-align:sub; ?
   */
 
-const removePropertiesFromHeaders = ['font-size', 'font-weight', 'font-style'];
-export function cleanupHeadingStyles(hast) {
-  // gdocs headings use both h1/h2/h3 and font stylings; remove certain font styles inside headings
-  // css stylesheet is first child of first node
-  const stylesheet = css.parse(hast.children[0].children[0].value);
-  const removeClassSelectors = stylesheet.stylesheet.rules
-    // these styles are in single class, single declaration format. pair up classes and properties
-    .map(r => [r.selectors[0], r.declarations[0].property])
-    // limit to properties that we want to remove
-    .filter(p => removePropertiesFromHeaders.includes(p[1]))
-    // get just the classes; note these are actually class selectors, so .-prefixed
-    .map(p => p[0]);
-  const removeClassNames = removeClassSelectors.map(s => s.substring(1));
-  const selector = `:matches(h1,h2,h3,h4,h5,h6) :matches(${removeClassSelectors.join(',')})`;
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    cssSelect.query(selector, draftHast).forEach((node) => {
-      filterClassNameList(node, className => !removeClassNames.includes(className));
-      removeClasses(node, removeClassNames);
-    });
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
-
-export function normalizeFontWeights(hast) {
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    const styleMap = new StyleMap();
-    const newNormalWeightClass = styleMap.addStyle('font-weight: normal');
-    const newBoldWeightClass = styleMap.addStyle('font-weight: bold');
-    const stylesheet = css.parse(draftHast.children[0].children[0].value);
-    const fontWeightRules = stylesheet.stylesheet.rules
-      .filter(rule => (rule.declarations[0].property === 'font-weight'));
-    const normalWeightClassSelectors = [];
-    const boldWeightClassSelectors = [];
-    fontWeightRules.forEach((rule) => {
-      // eslint-disable-next-line prefer-destructuring
-      const value = rule.declarations[0].value;
-      const selector = rule.selectors[0];
-      if (value === 'normal') {
-        normalWeightClassSelectors.push(selector);
-      } else if (value === 'bold') {
-        boldWeightClassSelectors.push(selector);
-      } else {
-        const intWeight = parseInt(value, 10);
-        (intWeight < 600 ? normalWeightClassSelectors : boldWeightClassSelectors).push(selector);
-      }
-    });
-    cssSelect.query(normalWeightClassSelectors.join(','), draftHast).forEach((node) => {
-      node.properties.className.push(newNormalWeightClass);
-    });
-    cssSelect.query(boldWeightClassSelectors.join(','), draftHast).forEach((node) => {
-      node.properties.className.push(newBoldWeightClass);
-    });
-    stylesheet.stylesheet.rules = stylesheet.stylesheet.rules.filter((rule) => {
-      const selector = rule.selectors[0];
-      return !(
-        normalWeightClassSelectors.includes(selector)
-        || boldWeightClassSelectors.includes(selector)
-      );
-    });
-    stylesheet.stylesheet.rules.push(...styleMap.rules);
-    draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
 
 export function normalizeFontSizes(hast) {
   const nextHast = produce(hast, (draftHast) => {
@@ -670,15 +604,3 @@ export function upPropagateStyles(hast) {
   });
   return nextHast;
 }
-
-export function makeBisuNodes(hast) {
-  // bold, italic, strikethru, underline
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    const stylesheet = css.parse(draftHast.children[0].children[0].value);
-    // TODO: finish implementing
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
-
