@@ -36,8 +36,11 @@ const propertyWhitelist = [
   'text-decoration', // underline/strikethru
   'margin-left', // blockquotes
   'text-align',
+  'vertical-align', // superscript and subscript use this
   'color',
 ];
+
+const verticalAlignValueWhitelist = ['super', 'sub'];
 
 function allowDeclaration(d) {
   return propertyWhitelist.includes(d.property);
@@ -223,9 +226,13 @@ export class StyleWorkspace {
     }
   }
 
-  filterStyleProperties() {
+  filterStyleDeclarations() {
     this.styleMap.rules.forEach((rule) => {
-      const filtered = rule.declarations.filter(allowDeclaration);
+      const filtered = rule.declarations.filter(allowDeclaration)
+        .filter((declaration) => {
+          if (declaration.property !== 'vertical-align') return true;
+          return verticalAlignValueWhitelist.includes(declaration.value);
+        });
       filtered.sort(compareFunc('property')); // inplace sort
       // eslint-disable-next-line no-param-reassign
       rule.declarations = filtered;
@@ -435,6 +442,28 @@ export class StyleWorkspace {
     this.styleMap.rules = this.styleMap.rules.filter(rulePredicate);
   }
 
+  convertStylesToSupSub() {
+    const verticalAlignRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'vertical-align'));
+    const superscriptRules = verticalAlignRules.filter(rule => rule.declarations[0].value === 'super');
+    const superscriptSelector = superscriptRules.map(r => r.selectors[0]).join(',');
+    const subscriptRules = verticalAlignRules.filter(rule => rule.declarations[0].value === 'sub');
+    const subscriptSelector = subscriptRules.map(r => r.selectors[0]).join(',');
+    const verticalAlignClasses = verticalAlignRules.map(r => r.selectors[0].substring(1));
+    const fontSizeRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'font-size'));
+    const fontSizeClasses = fontSizeRules.map(r => r.selectors[0].substring(1));
+    [[superscriptSelector, 'sup'], [subscriptSelector, 'sub']].forEach(([selector, tagName]) => {
+      cssSelect.query(selector, this.hast).forEach((node) => {
+        removeClasses(node, verticalAlignClasses);
+        // TODO: replace with font-size: 1em; once normalizeFontSizes is implemented
+        removeClasses(node, fontSizeClasses);
+        // eslint-disable-next-line no-param-reassign
+        node.children = [hastscript(tagName, node.children)];
+      });
+    });
+  }
+
   makeStylesInline() {
     /* eslint-disable no-param-reassign */
     this.styleMap.rules.forEach((rule) => {
@@ -468,7 +497,6 @@ export class StyleWorkspace {
   * bump any class up to the parent element, if 2/3 or more coverage
   * eventually default to stripping color, controlled by option
   * strip font-weight: normal and font-style: normal, after other processing complete
-  * vertical-align:super; and vertical-align:sub; ?
   * <p> inside <li>?
   */
 

@@ -277,12 +277,14 @@ describe('StyleWorkspace', () => {
       cssScript.r('.hephaestian-style-13', cssScript.d('vertical-align', 'baseline')),
       cssScript.r('.hephaestian-style-14', cssScript.d('white-space', 'pre')),
       cssScript.r('.hephaestian-style-15', cssScript.d('white-space', 'pre-wrap')),
+      cssScript.r('.hephaestian-style-16', cssScript.d('vertical-align', 'super')),
+      cssScript.r('.hephaestian-style-17', cssScript.d('vertical-align', 'sub')),
     ];
     const workspace = new StyleWorkspace(inputHast);
     workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
     workspace.styleMap.classNameCounter = inputRules.length;
 
-    workspace.filterStyleProperties();
+    workspace.filterStyleDeclarations();
     const expectedRules = [
       cssScript.r('.hephaestian-style-5', cssScript.d('font-size', '11pt')),
       cssScript.r('.hephaestian-style-6', cssScript.d('font-family', 'Arial')),
@@ -290,6 +292,8 @@ describe('StyleWorkspace', () => {
       cssScript.r('.hephaestian-style-9', cssScript.d('font-weight', '400')),
       cssScript.r('.hephaestian-style-10', cssScript.d('font-style', 'normal')),
       cssScript.r('.hephaestian-style-12', cssScript.d('text-decoration', 'none')),
+      cssScript.r('.hephaestian-style-16', cssScript.d('vertical-align', 'super')),
+      cssScript.r('.hephaestian-style-17', cssScript.d('vertical-align', 'sub')),
     ];
     expect(workspace.styleMap.rules).toEqual(expectedRules);
   });
@@ -532,6 +536,31 @@ describe('StyleWorkspace', () => {
         hscript('li', 'Number One'),
         hscript('li', 'Number Two'),
         hscript('li', 'Number Three'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should convert superscript and subscript styles to nodes', () => {
+    // vertical-align: super, vertical-align: sub
+    // remove font-size style on these also
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('span', { style: 'font-family:serif;font-size:6.6pt;vertical-align:super;' }, 'superscript'),
+        hscript('span', { style: 'font-family:serif;font-size:6.6pt;vertical-align:sub;' }, 'subscript'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+    expect(workspace.styleMap.rules.length).toEqual(4);
+
+    workspace.convertStylesToSupSub();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('span', { style: 'font-family:serif;' }, hscript('sup', 'superscript')),
+        hscript('span', { style: 'font-family:serif;' }, hscript('sub', 'subscript')),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);

@@ -121,12 +121,13 @@ export default function fixhtml(html, doc) {
     const ws = new StyleWorkspace(draftHast);
     ws.inlineStylesToClassSelectorStyles();
     ws.makeSingleDeclarationSingleClassForm();
-    ws.filterStyleProperties();
+    ws.filterStyleDeclarations();
     ws.cleanupHeadingStyles();
     ws.cleanupListItemStyles();
     ws.normalizeLeftMargins();
     ws.normalizeFontWeights();
     ws.convertStylesToBisu();
+    ws.convertStylesToSupSub();
     ws.makeStylesInline();
   });
   window.lastHast = hast;
