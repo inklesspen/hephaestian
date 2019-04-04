@@ -1,12 +1,13 @@
 /* eslint-disable no-unused-vars */
-import CSSselect from 'css-select';
 import css from 'css';
 import color from 'color';
 import colorString from 'color-string';
 import colorDiff from 'color-diff';
 
 import hastscript from 'hastscript';
+import uscript from 'unist-builder';
 import produce, { original as immerOriginal } from 'immer';
+import utilFind from 'unist-util-find';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
 import isElement from 'hast-util-is-element';
@@ -14,6 +15,7 @@ import hasProperty from 'hast-util-has-property';
 import compareFunc from 'compare-func';
 import hastClassList from 'hast-util-class-list';
 import expandShorthand from 'css-shorthand-expand';
+import parseUnit from 'parse-unit';
 
 import { cssSelect } from './util';
 
@@ -33,7 +35,7 @@ const propertyWhitelist = [
   'font-size', 'font-weight', 'font-style',
   'font-family',
   'text-decoration', // underline/strikethru
-  'margin-left', 'margin-right', // blockquotes
+  'margin-left', // blockquotes
   'text-align',
   'color',
 ];
@@ -66,9 +68,13 @@ function inplaceFilterRule(rule) {
   rule.declarations = filtered;
 }
 
-function filterClassList(node, predicate) {
+function filterClassNameList(node, predicate) {
   // eslint-disable-next-line no-param-reassign
   node.properties.className = node.properties.className.filter(predicate);
+}
+
+function removeClasses(node, removeClassNames) {
+  filterClassNameList(node, className => !removeClassNames.includes(className));
 }
 
 export function filterStyles(hast) {
@@ -135,14 +141,15 @@ function extractDeclarationText(declaration) {
 }
 
 function stripPositionInfo(rule) {
+  // This function mutates the rule in place, but returns the rule
+  // so it can be chained.
   /* eslint-disable no-param-reassign */
-  return produce(rule, (draftRule) => {
-    delete draftRule.position;
-    draftRule.declarations.forEach((d) => {
-      delete d.position;
-    });
+  delete rule.position;
+  rule.declarations.forEach((d) => {
+    delete d.position;
   });
   /* eslint-enable no-param-reassign */
+  return rule;
 }
 
 class StylesheetManager {
@@ -169,7 +176,10 @@ class StylesheetManager {
 class StyleMap extends StylesheetManager {
   constructor(counterStart = 0) {
     super();
-    this.rules = this.stylesheetContainer.stylesheet.rules;
+    Object.defineProperty(this, 'rules', {
+      get() { return this.stylesheetContainer.stylesheet.rules; },
+      set(v) { this.stylesheetContainer.stylesheet.rules = v; },
+    });
     this.classes = {};
     this.styleStrings = {};
     this.classNameCounter = counterStart;
@@ -228,7 +238,7 @@ export class StyleWorkspace {
     });
     sheet.stylesheetContainer.stylesheet.rules.forEach((rule) => {
       rule.selectors.forEach((selector) => {
-        rule.declarations.forEach((declaration) => {
+        rule.declarations.flatMap(expandShorthandDeclaration).forEach((declaration) => {
           const declarationText = extractDeclarationText(declaration);
           const newClass = this.styleMap.addStyle(declarationText);
           cssSelect.query(selector, this.hast).forEach((node) => {
@@ -240,9 +250,147 @@ export class StyleWorkspace {
     });
     const allowedClasses = Object.keys(this.styleMap.classes);
     const test = node => isElement(node) && hasProperty(node, 'className');
-    utilVisit(this.hast, test, (node, index, parent) => {
-      filterClassList(node, className => allowedClasses.includes(className));
+    utilVisit(this.hast, test, (node) => {
+      filterClassNameList(node, className => allowedClasses.includes(className));
     });
+  }
+
+  narrowToBodyNode() {
+    const bodyNode = utilFind(this.hast, node => isElement(node, 'body'));
+    if (bodyNode) {
+      this.hast = uscript('root', [bodyNode]);
+    }
+  }
+
+  filterStyleProperties() {
+    this.styleMap.rules.forEach((rule) => {
+      const filtered = rule.declarations.filter(allowDeclaration);
+      filtered.sort(compareFunc('property')); // inplace sort
+      // eslint-disable-next-line no-param-reassign
+      rule.declarations = filtered;
+    });
+    this.styleMap.rules = this.styleMap.rules.filter(rule => rule.declarations.length > 0);
+  }
+
+  normalizeLeftMargins() {
+    const leftMarginRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'margin-left'));
+    const leftMarginRuleData = {};
+    const totalCharacterCount = charactersInNode(this.hast);
+    const unitsFound = [];
+    leftMarginRules.forEach((rule) => {
+      const [strValue, unit] = parseUnit(rule.declarations[0].value);
+      if (!unitsFound.includes(unit)) unitsFound.push(unit);
+      const selector = rule.selectors[0];
+      if (!leftMarginRuleData[strValue]) {
+        leftMarginRuleData[strValue] = {
+          numValue: parseFloat(strValue, 10),
+          selectors: [],
+          classes: [],
+          characterCount: 0,
+        };
+      }
+      leftMarginRuleData[strValue].selectors.push(rule.selectors[0]);
+      leftMarginRuleData[strValue].classes.push(rule.selectors[0].substring(1));
+    });
+    if (unitsFound.length !== 1) return; // mixed units are bad
+    Object.values(leftMarginRuleData).forEach((marginEntry) => {
+      const selector = marginEntry.selectors.join(',');
+      // eslint-disable-next-line no-param-reassign
+      marginEntry.characterCount = cssSelect.query(selector, this.hast, true, true)
+        .map(charactersInNode).reduce(sumReducer, 0);
+    });
+    const defaultLeftMargin = Object.values(leftMarginRuleData)
+      .filter(marginEntry => ((marginEntry.characterCount / totalCharacterCount) > 0.75));
+    const stripMargins = {
+      selectors: [],
+      classes: [],
+    };
+    const blockquoteMargins = {
+      selectors: [],
+      classes: [],
+    };
+    if (defaultLeftMargin.length === 1) {
+      // there is a default!
+      const threshold = defaultLeftMargin[0].numValue;
+      Object.values(leftMarginRuleData).forEach((marginEntry) => {
+        if (marginEntry.numValue <= threshold) {
+          stripMargins.selectors.push(...marginEntry.selectors);
+          stripMargins.classes.push(...marginEntry.classes);
+        } else {
+          blockquoteMargins.selectors.push(...marginEntry.selectors);
+          blockquoteMargins.classes.push(...marginEntry.classes);
+        }
+      });
+    } else {
+      // no default; all left-margins to blockquotes
+      Object.values(leftMarginRuleData).forEach((marginEntry) => {
+        blockquoteMargins.selectors.push(...marginEntry.selectors);
+        blockquoteMargins.classes.push(...marginEntry.classes);
+      });
+    }
+    if (stripMargins.selectors.length > 0) {
+      const selector = stripMargins.selectors.join(',');
+      cssSelect.query(selector, this.hast).forEach((node) => {
+        removeClasses(node, stripMargins.classes);
+      });
+    }
+    if (blockquoteMargins.selectors.length > 0) {
+      const selector = blockquoteMargins.selectors.join(',');
+      cssSelect.query(selector, this.hast).forEach((node) => {
+        removeClasses(node, blockquoteMargins.classes);
+        // eslint-disable-next-line no-param-reassign
+        node.tagName = 'blockquote';
+      });
+    }
+    this.styleMap.rules = this.styleMap.rules.filter(rule => !leftMarginRules.includes(rule));
+  }
+
+  convertBisuToStyles() {
+    // bold, italic, strikethru, underline
+    const bisuStyleMap = {
+      b: 'font-weight: bold',
+      i: 'font-style: italic',
+      s: 'text-decoration: line-through',
+      u: 'text-decoration: underline',
+    };
+    const selector = Object.keys(bisuStyleMap).join(',');
+    cssSelect.query(selector, this.hast).forEach((node) => {
+      /* eslint-disable no-param-reassign */
+      hastClassList(node).add(this.styleMap.addStyle(bisuStyleMap[node.tagName]));
+      node.tagName = 'span';
+      /* eslint-enable no-param-reassign */
+    });
+  }
+
+  // convertStylesToBisu() {
+  //   // bold, italic, strikethru, underline
+  //   const styleBisuMap = {
+  //     'font-weight: bold': 'b',
+  //     'font-style: italic': 'i',
+  //     'text-decoration: line-through': 's',
+  //     'text-decoration: underline': 'u',
+  //   };
+  // }
+
+  // stylesToNodes() {
+
+  // }
+
+  makeStylesInline() {
+    /* eslint-disable no-param-reassign */
+    this.styleMap.rules.forEach((rule) => {
+      const inlineStyleString = extractDeclarationText(rule.declarations[0]);
+      cssSelect.query(rule.selectors[0], this.hast).forEach((node) => {
+        if (!node.properties.style) node.properties.style = '';
+        node.properties.style += inlineStyleString;
+      });
+    });
+    const test = node => isElement(node) && hasProperty(node, 'className');
+    utilVisit(this.hast, test, (node) => {
+      delete node.properties.className;
+    });
+    /* eslint-enable no-param-reassign */
   }
 }
 
@@ -269,36 +417,6 @@ export class StyleWorkspace {
   * eventually default to stripping color, controlled by option
   */
 
-const bisuStyleMap = {
-  b: 'font-weight: bold',
-  i: 'font-style: italic',
-  s: 'text-decoration: line-through',
-  u: 'text-decoration: underline',
-};
-
-export function convertBisuToStyles(hast) {
-  // bold, italic, strikethru, underline
-  const styleMap = new StyleMap();
-  const selector = Object.keys(bisuStyleMap).join(',');
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    const stylesheet = css.parse(draftHast.children[0].children[0].value);
-    cssSelect.query(selector, draftHast).forEach((node) => {
-      const classList = hastClassList(node);
-      classList.add(styleMap.addStyle(bisuStyleMap[node.tagName]));
-      node.tagName = 'span';
-    });
-    stylesheet.stylesheet.rules.push(...styleMap.rules);
-    draftHast.children[0].children[0].value = css.stringify(stylesheet, { compress: true });
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}
-
-function removeClasses(node, removeClassNames) {
-  filterClassList(node, className => !removeClassNames.includes(className));
-}
-
 const removePropertiesFromHeaders = ['font-size', 'font-weight', 'font-style'];
 export function cleanupHeadingStyles(hast) {
   // gdocs headings use both h1/h2/h3 and font stylings; remove certain font styles inside headings
@@ -316,6 +434,7 @@ export function cleanupHeadingStyles(hast) {
   const nextHast = produce(hast, (draftHast) => {
     /* eslint-disable no-param-reassign */
     cssSelect.query(selector, draftHast).forEach((node) => {
+      filterClassNameList(node, className => !removeClassNames.includes(className));
       removeClasses(node, removeClassNames);
     });
     /* eslint-enable no-param-reassign */
@@ -502,25 +621,3 @@ export function makeBisuNodes(hast) {
   return nextHast;
 }
 
-export function makeStylesInline(hast) {
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    const stylesheetNode = draftHast.children.shift();
-    const stylesheet = css.parse(stylesheetNode.children[0].value);
-    stylesheet.stylesheet.rules.forEach((rule) => {
-      const inlineStyleString = extractDeclarationText(rule.declarations[0]);
-      cssSelect.query(rule.selectors[0], draftHast).forEach((node) => {
-        if (!node.properties.style) node.properties.style = '';
-        node.properties.style += inlineStyleString;
-      });
-    });
-    utilVisit(draftHast, (node, index, parent) => {
-      if (isElement(node) && hasProperty(node, 'className')) {
-        delete node.properties.className;
-      }
-      return utilVisit.CONTINUE;
-    });
-    /* eslint-enable no-param-reassign */
-  });
-  return nextHast;
-}

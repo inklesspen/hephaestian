@@ -44,6 +44,26 @@ const body = (
         <li>Horizontal rules</li>
       </ul>
     </section>
+    <section>
+      <h1>What assumptions does Hephaestian make?</h1>
+      <p>
+        When rich text is copy-pasted in a web browser, it actually produces HTML behind the scenes.
+        Hephaestian makes certain assumptions about this HTML.
+      </p>
+      <ul>
+        <li>The bulk of the body text is in normal font style, rather than bold or italic.</li>
+        <li>Use of colors other than plain black (#000000) will be incidental at most.</li>
+        <li>Paragraphs either always have a blank line separating them, or never do.</li>
+        <li>
+          All measurements (margins, font sizes, etc) will use the same units, at least
+          within a class of measurement, rather than mixing different units.
+        </li>
+      </ul>
+      <p>
+        If a rich text provider violates these assumptions, bad output may result.
+        If this causes problems, contact me.
+      </p>
+    </section>
   </div>
 );
 
