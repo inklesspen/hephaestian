@@ -346,6 +346,41 @@ export class StyleWorkspace {
     this.styleMap.rules = this.styleMap.rules.filter(rule => !leftMarginRules.includes(rule));
   }
 
+  normalizeFontWeights() {
+    const newNormalWeightClass = this.styleMap.addStyle('font-weight: normal');
+    const newBoldWeightClass = this.styleMap.addStyle('font-weight: bold');
+    const fontWeightRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'font-weight'));
+    const normalWeightClassSelectors = [];
+    const boldWeightClassSelectors = [];
+    fontWeightRules.forEach((rule) => {
+      // eslint-disable-next-line prefer-destructuring
+      const value = rule.declarations[0].value;
+      const selector = rule.selectors[0];
+      if (value === 'normal') {
+        normalWeightClassSelectors.push(selector);
+      } else if (value === 'bold') {
+        boldWeightClassSelectors.push(selector);
+      } else {
+        const intWeight = parseInt(value, 10);
+        (intWeight < 600 ? normalWeightClassSelectors : boldWeightClassSelectors).push(selector);
+      }
+    });
+    const rejectClasses = [...normalWeightClassSelectors, ...boldWeightClassSelectors]
+      .map(s => s.substring(1))
+      .filter(s => ![newNormalWeightClass, newBoldWeightClass].includes(s));
+    cssSelect.query(normalWeightClassSelectors.join(','), this.hast).forEach((node) => {
+      removeClasses(node, rejectClasses);
+      node.properties.className.push(newNormalWeightClass);
+    });
+    cssSelect.query(boldWeightClassSelectors.join(','), this.hast).forEach((node) => {
+      removeClasses(node, rejectClasses);
+      node.properties.className.push(newBoldWeightClass);
+    });
+    const rulePredicate = rule => !rejectClasses.includes(rule.selectors[0].substring(1));
+    this.styleMap.rules = this.styleMap.rules.filter(rulePredicate);
+  }
+
   convertBisuToStyles() {
     // bold, italic, strikethru, underline
     const bisuStyleMap = {
@@ -363,19 +398,45 @@ export class StyleWorkspace {
     });
   }
 
-  // convertStylesToBisu() {
-  //   // bold, italic, strikethru, underline
-  //   const styleBisuMap = {
-  //     'font-weight: bold': 'b',
-  //     'font-style: italic': 'i',
-  //     'text-decoration: line-through': 's',
-  //     'text-decoration: underline': 'u',
-  //   };
-  // }
-
-  // stylesToNodes() {
-
-  // }
+  convertStylesToBisu() {
+    // bold, italic, strikethru, underline
+    const selectorMap = new Map([
+      ['b', []],
+      ['i', []],
+      ['s', []],
+      ['u', []],
+    ]);
+    // apparently arrays work fine when _storing_ keys in maps, but not when reading the values
+    const styleBisuMap = new Map([
+      ['font-weight: bold', 'b'],
+      ['font-style: italic', 'i'],
+      ['text-decoration: line-through', 's'],
+      ['text-decoration: underline', 'u'],
+    ]);
+    this.styleMap.rules.forEach((rule) => {
+      const declaration = rule.declarations[0];
+      const lookupKey = [declaration.property, declaration.value].join(': ');
+      if (!styleBisuMap.has(lookupKey)) return;
+      selectorMap.get(styleBisuMap.get(lookupKey)).push(rule.selectors[0]);
+    });
+    selectorMap.forEach((selectors, tagName) => {
+      const selector = selectors.join(',');
+      const rejectClasses = selectors.map(s => s.substring(1));
+      cssSelect.query(selector, this.hast).forEach((node) => {
+        // this might yield spans with no classes and only one child
+        // we'll clean that up in a separate stage
+        removeClasses(node, rejectClasses);
+        // eslint-disable-next-line no-param-reassign
+        node.children = [hastscript(tagName, node.children)];
+      });
+    });
+    const rejectSelectors = [
+      ...selectorMap.get('b'), ...selectorMap.get('i'),
+      ...selectorMap.get('s'), ...selectorMap.get('u'),
+    ];
+    const rulePredicate = rule => !rejectSelectors.includes(rule.selectors[0]);
+    this.styleMap.rules = this.styleMap.rules.filter(rulePredicate);
+  }
 
   makeStylesInline() {
     /* eslint-disable no-param-reassign */

@@ -174,6 +174,48 @@ describe('StyleWorkspace', () => {
     expect(workspace.styleMap.rules).toEqual(expectedRules);
   });
 
+  it('should convert bisu styles back to nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [hscript('span.hephaestian-style-1', 'Something bold')]),
+      hscript('p', [hscript('span.hephaestian-style-2', 'Something italic')]),
+      hscript('p', [hscript('span.hephaestian-style-1', hscript('span.hephaestian-style-2', 'Something bold/italic'))]),
+      hscript('div', [
+        hscript('span', [
+          'Normal text ',
+          hscript('span.hephaestian-style-3', 'underlined'),
+          ' ',
+          hscript('span.hephaestian-style-4', 'strikethru'),
+        ]),
+      ]),
+    ]);
+    const inputRules = [
+      cssScript.r('.hephaestian-style-1', cssScript.d('font-weight', 'bold')),
+      cssScript.r('.hephaestian-style-2', cssScript.d('font-style', 'italic')),
+      cssScript.r('.hephaestian-style-3', cssScript.d('text-decoration', 'underline')),
+      cssScript.r('.hephaestian-style-4', cssScript.d('text-decoration', 'line-through')),
+    ];
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
+    workspace.styleMap.classNameCounter = inputRules.length;
+
+    workspace.convertStylesToBisu();
+    const expectedHast = uscript('root', [
+      hscript('p', [hscript('span', { class: '' }, hscript('b', 'Something bold'))]),
+      hscript('p', [hscript('span', { class: '' }, hscript('i', 'Something italic'))]),
+      hscript('p', [hscript('span', { class: '' }, hscript('b', hscript('span', { class: '' }, hscript('i', 'Something bold/italic'))))]),
+      hscript('div', [
+        hscript('span', [
+          'Normal text ',
+          hscript('span', { class: '' }, hscript('u', 'underlined')),
+          ' ',
+          hscript('span', { class: '' }, hscript('s', 'strikethru')),
+        ]),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.styleMap.rules).toEqual([]);
+  });
+
   it('should expand shortcut properties', () => {
     const fontProperty = 'font: italic 1.2em "Fira Sans", serif;';
     const marginProperty = 'margin: 10px 50px 20px;';
@@ -353,17 +395,19 @@ describe('StyleWorkspace', () => {
   });
 
   it('should normalize scrivener-style margins', () => {
-    const texts = [1, 2, 3, 4, 5, 6, 7, 8].map(() => lorem.generateParagraphs(1));
+    // using the same text for every paragraph so we can be sure to trigger the 75% threshold
+    const text = lorem.generateParagraphs(1);
     const inputHast = uscript('root', [
       hscript('body', [
-        hscript('p', { class: 'hephaestian-style-1' }, texts[0]),
-        hscript('p', { class: 'hephaestian-style-1' }, texts[1]),
-        hscript('p', { class: 'hephaestian-style-1' }, texts[2]),
-        hscript('p', { class: 'hephaestian-style-1' }, texts[3]),
-        hscript('p', { class: 'hephaestian-style-2' }, texts[4]),
-        hscript('p', { class: 'hephaestian-style-2' }, texts[5]),
-        hscript('p', { class: 'hephaestian-style-1' }, texts[6]),
-        hscript('p', { class: 'hephaestian-style-1' }, texts[7]),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-2' }, text),
+        hscript('p', { class: 'hephaestian-style-2' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
+        hscript('p', { class: 'hephaestian-style-1' }, text),
       ]),
     ]);
     const inputRules = [
@@ -376,17 +420,66 @@ describe('StyleWorkspace', () => {
     workspace.normalizeLeftMargins();
     const expectedHast = uscript('root', [
       hscript('body', [
-        hscript('p', { class: '' }, texts[0]),
-        hscript('p', { class: '' }, texts[1]),
-        hscript('p', { class: '' }, texts[2]),
-        hscript('p', { class: '' }, texts[3]),
-        hscript('blockquote', { class: '' }, texts[4]),
-        hscript('blockquote', { class: '' }, texts[5]),
-        hscript('p', { class: '' }, texts[6]),
-        hscript('p', { class: '' }, texts[7]),
+        hscript('p', { class: '' }, text),
+        hscript('p', { class: '' }, text),
+        hscript('p', { class: '' }, text),
+        hscript('p', { class: '' }, text),
+        hscript('blockquote', { class: '' }, text),
+        hscript('blockquote', { class: '' }, text),
+        hscript('p', { class: '' }, text),
+        hscript('p', { class: '' }, text),
+        hscript('p', { class: '' }, text),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.styleMap.rules).toEqual([]);
+  });
+
+  it('should normalize font-weights', () => {
+    const texts = [1, 2, 3, 4, 5, 6, 7, 8].map(() => lorem.generateParagraphs(1));
+    const inputHast = uscript('root', [
+      hscript('body', [
+        hscript('p', { class: 'hephaestian-style-1' }, texts[0]),
+        hscript('p', { class: 'hephaestian-style-2' }, texts[1]),
+        hscript('p', { class: 'hephaestian-style-3' }, texts[2]),
+        hscript('p', { class: 'hephaestian-style-4' }, texts[3]),
+        hscript('p', { class: 'hephaestian-style-5' }, texts[4]),
+        hscript('p', { class: 'hephaestian-style-2' }, texts[5]),
+        hscript('p', { class: 'hephaestian-style-6' }, texts[6]),
+        hscript('p', { class: 'hephaestian-style-7' }, texts[7]),
+      ]),
+    ]);
+    const inputRules = [
+      cssScript.r('.hephaestian-style-1', cssScript.d('font-weight', 'normal')),
+      cssScript.r('.hephaestian-style-2', cssScript.d('font-weight', 'bold')),
+      cssScript.r('.hephaestian-style-3', cssScript.d('font-weight', '300')),
+      cssScript.r('.hephaestian-style-4', cssScript.d('font-weight', '400')),
+      cssScript.r('.hephaestian-style-5', cssScript.d('font-weight', '600')),
+      cssScript.r('.hephaestian-style-6', cssScript.d('font-weight', '800')),
+      cssScript.r('.hephaestian-style-7', cssScript.d('font-weight', '900')),
+    ];
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
+    workspace.styleMap.classNameCounter = inputRules.length;
+
+    workspace.normalizeFontWeights();
+    const expectedHast = uscript('root', [
+      hscript('body', [
+        hscript('p', { class: 'hephaestian-style-8' }, texts[0]),
+        hscript('p', { class: 'hephaestian-style-9' }, texts[1]),
+        hscript('p', { class: 'hephaestian-style-8' }, texts[2]),
+        hscript('p', { class: 'hephaestian-style-8' }, texts[3]),
+        hscript('p', { class: 'hephaestian-style-9' }, texts[4]),
+        hscript('p', { class: 'hephaestian-style-9' }, texts[5]),
+        hscript('p', { class: 'hephaestian-style-9' }, texts[6]),
+        hscript('p', { class: 'hephaestian-style-9' }, texts[7]),
+      ]),
+    ]);
+    const expectedRules = [
+      cssScript.r('.hephaestian-style-8', cssScript.d('font-weight', 'normal')),
+      cssScript.r('.hephaestian-style-9', cssScript.d('font-weight', 'bold')),
+    ];
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.styleMap.rules).toEqual(expectedRules);
   });
 });
