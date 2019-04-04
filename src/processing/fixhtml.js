@@ -64,9 +64,8 @@ function detectGoogleDocs(hast) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fixGoogleDocs(hast, doc) {
+function fixGoogleDocs(hast) {
   // There are some cleanups required before we can allow Squire to parse the HTML.
-  // const styleWorkElement = doc.createElement('span');
 
   const nextHast = produce(hast, (draftHast) => {
     /* eslint-disable no-param-reassign */
@@ -90,19 +89,6 @@ function fixGoogleDocs(hast, doc) {
           return index;
         }
       }
-      // TODO: extract this into styles.js
-      // if span with style text-decoration:line-through
-      // change text-decoration to none, wrap contents in a <s>
-      // if (utilIs('element', node) &&
-      // dotProp.get(node, 'properties.style', '').includes('line-through')) {
-      //   styleWorkElement.style = node.properties.style;
-      //   if (styleWorkElement.style.textDecoration === 'line-through') {
-      //     styleWorkElement.style.textDecoration = 'none';
-      //     node.properties.style = styleWorkElement.style.cssText;
-      //     node.children = [hastscript('s', node.children)];
-      //   }
-      // }
-
       return utilVisit.CONTINUE;
     });
     /* eslint-enable no-param-reassign */

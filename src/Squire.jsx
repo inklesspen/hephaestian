@@ -20,7 +20,7 @@ function sanitizeToDOMFragment(dispatchPastedHTML, dispatchConversionNotes, html
     dispatchPastedHTML(html);
   }
 
-  const fixed = fixhtml(html, editorDoc);
+  const fixed = fixhtml(html);
 
   const frag = DOMPurify.sanitize(fixed, {
     ALLOW_UNKNOWN_PROTOCOLS: true,
