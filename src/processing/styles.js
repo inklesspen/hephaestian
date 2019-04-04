@@ -5,7 +5,6 @@ import colorString from 'color-string';
 import colorDiff from 'color-diff';
 
 import hastscript from 'hastscript';
-import uscript from 'unist-builder';
 import produce, { original as immerOriginal } from 'immer';
 import utilFind from 'unist-util-find';
 import utilIs from 'unist-util-is';
@@ -60,14 +59,6 @@ function expandShorthandDeclaration(d) {
     .map(([property, value]) => cssScript.d(property, value));
 }
 
-function inplaceFilterRule(rule) {
-  const filtered = rule.declarations
-    .flatMap(expandShorthandDeclaration).filter(allowDeclaration);
-  filtered.sort(compareFunc('property')); // inplace sort
-  // eslint-disable-next-line no-param-reassign
-  rule.declarations = filtered;
-}
-
 function filterClassNameList(node, predicate) {
   // eslint-disable-next-line no-param-reassign
   node.properties.className = node.properties.className.filter(predicate);
@@ -79,7 +70,7 @@ function removeClasses(node, removeClassNames) {
 
 const sumReducer = (accumulator, currentValue) => accumulator + currentValue;
 
-export function charactersInNode(node) {
+function charactersInNode(node) {
   if (utilIs('text', node)) {
     return node.value.length;
   }
@@ -91,7 +82,7 @@ export function charactersInNode(node) {
   return node.children.map(charactersInNode).reduce(sumReducer, 0);
 }
 
-export function extractTextNodes(node) {
+function extractTextNodes(node) {
   const textNodes = [];
   utilVisit(node, (visitedNode) => {
     if (utilIs('text', visitedNode)) {
@@ -453,8 +444,8 @@ export class StyleWorkspace {
         node.properties.style += inlineStyleString;
       });
     });
-    const test = node => isElement(node) && hasProperty(node, 'className');
-    utilVisit(this.hast, test, (node) => {
+    const predicate = node => isElement(node) && hasProperty(node, 'className');
+    utilVisit(this.hast, predicate, (node) => {
       delete node.properties.className;
     });
     /* eslint-enable no-param-reassign */
@@ -478,6 +469,7 @@ export class StyleWorkspace {
   * eventually default to stripping color, controlled by option
   * strip font-weight: normal and font-style: normal, after other processing complete
   * vertical-align:super; and vertical-align:sub; ?
+  * <p> inside <li>?
   */
 
 

@@ -482,4 +482,58 @@ describe('StyleWorkspace', () => {
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.styleMap.rules).toEqual(expectedRules);
   });
+
+  it('should cleanup heading styles', () => {
+    // gdocs headings use both h1/h2/h3 and font stylings;
+    // so remove certain font styles inside headings
+    // the styles are on nodes _inside_ the heading nodes
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', hscript('span', { style: 'font-size: 20px' }, 'First Header')),
+        hscript('h2', hscript('span', { style: 'font-weight: 700' }, 'Second Header')),
+        hscript('h3', hscript('span', { style: 'font-style: normal' }, 'Third Header')),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+    expect(workspace.styleMap.rules.length).toEqual(3);
+
+    workspace.cleanupHeadingStyles();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', hscript('span', 'First Header')),
+        hscript('h2', hscript('span', 'Second Header')),
+        hscript('h3', hscript('span', 'Third Header')),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should clean up listitem styles', () => {
+    // gdocs puts margin-left on <li> tags; this throws off normalizeLeftMargins
+    const inputHast = uscript('root', [
+      hscript('ol', [
+        hscript('li', { style: 'margin-left: 15px' }, 'Number One'),
+        hscript('li', { style: 'margin-left: 15px' }, 'Number Two'),
+        hscript('li', { style: 'margin-left: 15px' }, 'Number Three'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+    expect(workspace.styleMap.rules.length).toEqual(1);
+
+    workspace.cleanupListItemStyles();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('ol', [
+        hscript('li', 'Number One'),
+        hscript('li', 'Number Two'),
+        hscript('li', 'Number Three'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });
