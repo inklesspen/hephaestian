@@ -632,40 +632,6 @@ describe('StyleWorkspace', () => {
     expect(workspace.hast).toEqual(expectedHast);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('should properly handle nested font sizes', () => {
-    // I don't know if this actually happens, but I feel like it ought to be caught anyway.
-    // in the input text, the bulk of the characters are within a 16px size,
-    // which overrides a 12px size. So 16px should be detected as the default.
-    const inputHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { style: 'font: 12.0px Helvetica' }, [
-          hscript('span', { style: 'font-size: 16.0px' }, 'Years and years ago, there was a production of The Tempest, out of doors, at an Oxford college on a lawn, which was the stage, and the lawn went back towards the lake in the grounds of the college, and the play began in natural light. But as it developed, and as it became time for Ariel to say his farewell to the world of The Tempest, the evening had started to close in and there was some artificial lighting coming on. And as Ariel uttered his last speech, he turned and he ran across the grass, and he got to the edge of the lake and he just kept running across the top of the water — the producer having thoughtfully provided a kind of walkway an inch beneath the water. And you could see and you could hear the plish, plash as he ran away from you across the top of the lake, until the gloom enveloped him and he disappeared from your view. And as he did so, from the further shore, a firework rocket was ignited, and it went whoosh into the air, and high up there it burst into lots of sparks, and all the sparks went out, and he had gone.'),
-        ]),
-        hscript('p', { style: 'font: 12.0px Helvetica' }, [
-          hscript('span', "When you look up the stage directions, it says, 'Exit Ariel.'"),
-        ]),
-      ]),
-    ]);
-    const workspace = new StyleWorkspace(inputHast);
-    workspace.inlineStylesToClassSelectorStyles();
-    workspace.makeSingleDeclarationSingleClassForm();
-
-    workspace.normalizeFontSizes();
-    workspace.makeStylesInline();
-    const expectedHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { style: 'font-family:"Helvetica";font-size:0.75em;' }, [
-          hscript('span', { style: 'font-size: 1em' }, 'Years and years ago, there was a production of The Tempest, out of doors, at an Oxford college on a lawn, which was the stage, and the lawn went back towards the lake in the grounds of the college, and the play began in natural light. But as it developed, and as it became time for Ariel to say his farewell to the world of The Tempest, the evening had started to close in and there was some artificial lighting coming on. And as Ariel uttered his last speech, he turned and he ran across the grass, and he got to the edge of the lake and he just kept running across the top of the water — the producer having thoughtfully provided a kind of walkway an inch beneath the water. And you could see and you could hear the plish, plash as he ran away from you across the top of the lake, until the gloom enveloped him and he disappeared from your view. And as he did so, from the further shore, a firework rocket was ignited, and it went whoosh into the air, and high up there it burst into lots of sparks, and all the sparks went out, and he had gone.'),
-        ]),
-        hscript('p', { style: 'font-family:"Helvetica";font-size:0.75em;' }, [
-          hscript('span', "When you look up the stage directions, it says, 'Exit Ariel.'"),
-        ]),
-      ]),
-    ]);
-    expect(workspace.hast).toEqual(expectedHast);
-  });
-
   it('should convert monospace fonts to code tags', () => {
     // TODO: after upgrading to neutrino v9, convert this to it.each
     const families = [
