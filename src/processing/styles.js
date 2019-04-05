@@ -288,14 +288,14 @@ export class StyleWorkspace {
       const selector = rule.selectors[0];
       if (!leftMarginRuleData[strValue]) {
         leftMarginRuleData[strValue] = {
-          numValue: parseFloat(strValue, 10),
+          numValue: parseFloat(strValue),
           selectors: [],
           classes: [],
           characterCount: 0,
         };
       }
-      leftMarginRuleData[strValue].selectors.push(rule.selectors[0]);
-      leftMarginRuleData[strValue].classes.push(rule.selectors[0].substring(1));
+      leftMarginRuleData[strValue].selectors.push(selector);
+      leftMarginRuleData[strValue].classes.push(selector.substring(1));
     });
     if (unitsFound.length !== 1) return; // mixed units are bad
     Object.values(leftMarginRuleData).forEach((marginEntry) => {
