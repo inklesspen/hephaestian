@@ -15,6 +15,8 @@ import compareFunc from 'compare-func';
 import hastClassList from 'hast-util-class-list';
 import expandShorthand from 'css-shorthand-expand';
 import parseUnit from 'parse-unit';
+import { splitByCommas } from 'css-list-helpers';
+import unquote from 'unquote';
 
 import { cssSelect } from './util';
 
@@ -438,6 +440,25 @@ export class StyleWorkspace {
     });
   }
 
+  handleMonospaceFonts() {
+    const fontFamilyRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'font-family'));
+    const monospacePredicate = family => (
+      family === 'monospace' || family.startsWith('Courier') || family.endsWith(' Mono') ||
+      ['Consolas', 'Monaco', 'Menlo'].some(name => family === name)
+    );
+    const parseFamilyValue = familyValue => splitByCommas(familyValue).map(unquote);
+    const monospaceFontFamilyRules = fontFamilyRules
+      .filter(rule => parseFamilyValue(rule.declarations[0].value).some(monospacePredicate));
+    const monospaceSelector = monospaceFontFamilyRules.map(rule => rule.selectors[0]).join(',');
+    const monospaceClasses = monospaceFontFamilyRules.map(rule => rule.selectors[0].substring(1));
+    cssSelect.query(monospaceSelector, this.hast).forEach((node) => {
+      removeClasses(node, monospaceClasses);
+      // eslint-disable-next-line no-param-reassign
+      node.children = [hastscript('code', node.children)];
+    });
+  }
+
   convertBisuToStyles() {
     // bold, italic, strikethru, underline
     const bisuStyleMap = {
@@ -541,7 +562,6 @@ export class StyleWorkspace {
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
-  * attempt to detect monospace fonts?
   * normalize colors into hex format?
   * bump any class up to the parent element, if 2/3 or more coverage
   * eventually default to stripping color, controlled by option

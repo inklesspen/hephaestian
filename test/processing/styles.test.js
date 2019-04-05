@@ -665,4 +665,38 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
+  it('should convert monospace fonts to code tags', () => {
+    // TODO: after upgrading to neutrino v9, convert this to it.each
+    const families = [
+      'Cousine,monospace', '"Source Code Pro",monospace', 'Consolas',
+      '"Courier Prime"', 'Courier', '"Courier New"', '"Menlo"', '"Monaco"', '"Fira Mono"',
+    ];
+    families.forEach((family) => {
+      const inputHast = uscript('root', [
+        hscript('body', [
+          hscript('p', [
+            'The dot-matrix printout said simply, ',
+            hscript('span', { style: `font-family: ${family};` }, 'You will die in 24 hours.'),
+            ' I screamed.',
+          ]),
+        ]),
+      ]);
+      const workspace = new StyleWorkspace(inputHast);
+      workspace.inlineStylesToClassSelectorStyles();
+
+      workspace.handleMonospaceFonts();
+      workspace.makeStylesInline();
+      const expectedHast = uscript('root', [
+        hscript('body', [
+          hscript('p', [
+            'The dot-matrix printout said simply, ',
+            hscript('span', hscript('code', 'You will die in 24 hours.')),
+            ' I screamed.',
+          ]),
+        ]),
+      ]);
+      expect(workspace.hast).toEqual(expectedHast);
+    });
+  });
 });

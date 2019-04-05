@@ -35,13 +35,34 @@ const body = (
       </dl>
     </section>
     <section>
-      <h1>What formatting options does Hephaestian preserve?</h1>
+      <h1>What formatting options does Hephaestian try to preserve?</h1>
       <ul>
         <li>Text alignment: left, center, or right</li>
         <li>Text formatting: bold, italic, underline, strikethru</li>
         <li>Headers</li>
-        <li>Font sizes and colors (support may vary)</li>
+        <li>Font sizes and colors</li>
+        <li>Font family/face (limited)</li>
         <li>Horizontal rules</li>
+      </ul>
+    </section>
+    <section>
+      <h1>What&apos;s &quot;limited&quot; about the font family support?</h1>
+      <p>
+        The only font family Hephaestian preserves are monospaced fonts. If you use
+        a monospaced font, such as Courier, Monaco, or Consolas, Hephaestian will
+        attempt to render it as a &quot;code&quot; block in the output.
+        However, Hephaestian may not always recognize a monospaced font by its name.
+        If you have difficulty with this feature, make sure your monospaced font
+        is one of these fonts:
+      </p>
+      <ul>
+        <li>Courier or Courier New</li>
+        <li>Consolas</li>
+        <li>Monaco</li>
+        <li>
+          &hellip; or any other font with the word &quot;Mono&quot; in its name,
+          such as &quot;Fira Mono&quot; or &quot;Roboto Mono&quot;.
+        </li>
       </ul>
     </section>
     <section>
