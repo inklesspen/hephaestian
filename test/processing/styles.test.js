@@ -559,8 +559,108 @@ describe('StyleWorkspace', () => {
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
       hscript('div', [
-        hscript('span', { style: 'font-family:serif;' }, hscript('sup', 'superscript')),
-        hscript('span', { style: 'font-family:serif;' }, hscript('sub', 'subscript')),
+        hscript('span', { style: 'font-family:serif;font-size:1em;' }, hscript('sup', 'superscript')),
+        hscript('span', { style: 'font-family:serif;font-size:1em;' }, hscript('sub', 'subscript')),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should normalize font sizes given in px', () => {
+    const inputHast = uscript('root', [
+      hscript('html', [
+        hscript('head', [
+          hscript('style', { type: 'text/css' }, 'p.p1 {font-size: 12.0px;}span.s1 {font-size: 18.0px;}span.s2 {font-size: 9.0px}'),
+        ]),
+        hscript('body', [
+          hscript('p.p1', [
+            hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+            hscript('span.s1', 'INITIATE HACK'),
+            hscript('span', '], with another, smaller, button reading ['),
+            hscript('span.s2', 'CANCEL'),
+            hscript('span', '].'),
+          ]),
+        ]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+    workspace.narrowToBodyNode();
+
+    workspace.normalizeFontSizes();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('body', [
+        hscript('p', { style: 'font-size:1em;' }, [
+          hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+          hscript('span', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
+          hscript('span', '], with another, smaller, button reading ['),
+          hscript('span', { style: 'font-size:0.75em;' }, 'CANCEL'),
+          hscript('span', '].'),
+        ]),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should normalize font sizes given in pt', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('span', { style: 'font-size: 11pt' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', { style: 'font-size: 14pt' }, 'INITIATE HACK'),
+        hscript('span', { style: 'font-size: 11pt' }, '], with another, smaller, button reading ['),
+        hscript('span', { style: 'font-size: 8pt' }, 'CANCEL'),
+        hscript('span', { style: 'font-size: 11pt' }, '].'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.normalizeFontSizes();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('span', { style: 'font-size:1em;' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', { style: 'font-size:1.27273em;' }, 'INITIATE HACK'),
+        hscript('span', { style: 'font-size:1em;' }, '], with another, smaller, button reading ['),
+        hscript('span', { style: 'font-size:0.72727em;' }, 'CANCEL'),
+        hscript('span', { style: 'font-size:1em;' }, '].'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('should properly handle nested font sizes', () => {
+    // I don't know if this actually happens, but I feel like it ought to be caught anyway.
+    // in the input text, the bulk of the characters are within a 16px size,
+    // which overrides a 12px size. So 16px should be detected as the default.
+    const inputHast = uscript('root', [
+      hscript('body', [
+        hscript('p', { style: 'font: 12.0px Helvetica' }, [
+          hscript('span', { style: 'font-size: 16.0px' }, 'Years and years ago, there was a production of The Tempest, out of doors, at an Oxford college on a lawn, which was the stage, and the lawn went back towards the lake in the grounds of the college, and the play began in natural light. But as it developed, and as it became time for Ariel to say his farewell to the world of The Tempest, the evening had started to close in and there was some artificial lighting coming on. And as Ariel uttered his last speech, he turned and he ran across the grass, and he got to the edge of the lake and he just kept running across the top of the water — the producer having thoughtfully provided a kind of walkway an inch beneath the water. And you could see and you could hear the plish, plash as he ran away from you across the top of the lake, until the gloom enveloped him and he disappeared from your view. And as he did so, from the further shore, a firework rocket was ignited, and it went whoosh into the air, and high up there it burst into lots of sparks, and all the sparks went out, and he had gone.'),
+        ]),
+        hscript('p', { style: 'font: 12.0px Helvetica' }, [
+          hscript('span', "When you look up the stage directions, it says, 'Exit Ariel.'"),
+        ]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.normalizeFontSizes();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('body', [
+        hscript('p', { style: 'font-family:"Helvetica";font-size:0.75em;' }, [
+          hscript('span', { style: 'font-size: 1em' }, 'Years and years ago, there was a production of The Tempest, out of doors, at an Oxford college on a lawn, which was the stage, and the lawn went back towards the lake in the grounds of the college, and the play began in natural light. But as it developed, and as it became time for Ariel to say his farewell to the world of The Tempest, the evening had started to close in and there was some artificial lighting coming on. And as Ariel uttered his last speech, he turned and he ran across the grass, and he got to the edge of the lake and he just kept running across the top of the water — the producer having thoughtfully provided a kind of walkway an inch beneath the water. And you could see and you could hear the plish, plash as he ran away from you across the top of the lake, until the gloom enveloped him and he disappeared from your view. And as he did so, from the further shore, a firework rocket was ignited, and it went whoosh into the air, and high up there it burst into lots of sparks, and all the sparks went out, and he had gone.'),
+        ]),
+        hscript('p', { style: 'font-family:"Helvetica";font-size:0.75em;' }, [
+          hscript('span', "When you look up the stage directions, it says, 'Exit Ariel.'"),
+        ]),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);

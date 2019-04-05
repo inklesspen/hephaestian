@@ -126,6 +126,7 @@ export default function fixhtml(html, doc) {
     ws.cleanupListItemStyles();
     ws.normalizeLeftMargins();
     ws.normalizeFontWeights();
+    ws.normalizeFontSizes();
     ws.convertStylesToBisu();
     ws.convertStylesToSupSub();
     ws.makeStylesInline();

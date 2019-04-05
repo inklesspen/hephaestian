@@ -385,6 +385,59 @@ export class StyleWorkspace {
     this.styleMap.rules = this.styleMap.rules.filter(rulePredicate);
   }
 
+  normalizeFontSizes() {
+    // gdocs gives font sizes in pt
+    // macos text framework (scrivener, etc) gives font sizes in px
+    // and libreoffice gives font sizes in pt apparently?
+    // nothing actually uses ems
+    // and it doesn't actually matter if it's px or pt because we only care about relative values
+    // we're assuming nobody actually uses keyword sizes.
+    const fontSizeRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'font-size'));
+    if (fontSizeRules.length === 0) return;
+    const fontSizeRuleData = {};
+    const totalCharacterCount = charactersInNode(this.hast);
+    const unitsFound = [];
+    fontSizeRules.forEach((rule) => {
+      const [strValue, unit] = parseUnit(rule.declarations[0].value);
+      if (!unitsFound.includes(unit)) unitsFound.push(unit);
+      const selector = rule.selectors[0];
+      if (!fontSizeRuleData[strValue]) {
+        fontSizeRuleData[strValue] = {
+          numValue: parseFloat(strValue),
+          selectors: [],
+          classes: [],
+          characterCount: 0,
+        };
+      }
+      fontSizeRuleData[strValue].selectors.push(selector);
+      fontSizeRuleData[strValue].classes.push(selector.substring(1));
+    });
+    if (unitsFound.length !== 1) return; // mixed units are bad
+    const fontSizeUnit = unitsFound[0];
+    // we only handle pt and px right now.
+    if (!['pt', 'px'].includes(fontSizeUnit)) return;
+    Object.values(fontSizeRuleData).forEach((fontSizeEntry) => {
+      const selector = fontSizeEntry.selectors.join(',');
+      // eslint-disable-next-line no-param-reassign
+      fontSizeEntry.characterCount = cssSelect.query(selector, this.hast, true, true)
+        .map(charactersInNode).reduce(sumReducer, 0);
+    });
+    const candidateFontSizes = Object.values(fontSizeRuleData)
+      .filter(fontSizeEntry => ((fontSizeEntry.characterCount / totalCharacterCount) > 0.75));
+    // default to 11px/pt if no default found.
+    const defaultFontSize = (candidateFontSizes.length === 1) ? candidateFontSizes[0].numValue : 11;
+    Object.values(fontSizeRuleData).forEach((fontSizeEntry) => {
+      const selector = fontSizeEntry.selectors.join(',');
+      const newSize = parseFloat((fontSizeEntry.numValue / defaultFontSize).toFixed(5));
+      const newSizeClass = this.styleMap.addStyle(`font-size: ${newSize}em`);
+      cssSelect.query(selector, this.hast).forEach((node) => {
+        removeClasses(node, fontSizeEntry.classes);
+        node.properties.className.push(newSizeClass);
+      });
+    });
+  }
+
   convertBisuToStyles() {
     // bold, italic, strikethru, underline
     const bisuStyleMap = {
@@ -456,8 +509,8 @@ export class StyleWorkspace {
     [[superscriptSelector, 'sup'], [subscriptSelector, 'sub']].forEach(([selector, tagName]) => {
       cssSelect.query(selector, this.hast).forEach((node) => {
         removeClasses(node, verticalAlignClasses);
-        // TODO: replace with font-size: 1em; once normalizeFontSizes is implemented
         removeClasses(node, fontSizeClasses);
+        hastClassList(node).add(this.styleMap.addStyle('font-size:1em'));
         // eslint-disable-next-line no-param-reassign
         node.children = [hastscript(tagName, node.children)];
       });
@@ -488,15 +541,12 @@ export class StyleWorkspace {
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
-  * detect "default" font settings and remove
-  *  - find default font-size, set to 1 em, and set everything else to multiples of 1 em
-  *  - if the incoming font-sizes are in em, leave them as they are and may god have mercy
-  *  - otherwise use convert-css-length and parse-unit
   * attempt to detect monospace fonts?
   * normalize colors into hex format?
   * bump any class up to the parent element, if 2/3 or more coverage
   * eventually default to stripping color, controlled by option
-  * strip font-weight: normal and font-style: normal, after other processing complete
+  * strip font-size: 1em, font-weight: normal and font-style: normal,
+  * after other processing complete
   * <p> inside <li>?
   */
 
