@@ -288,7 +288,6 @@ describe('StyleWorkspace', () => {
     const expectedRules = [
       cssScript.r('.hephaestian-style-5', cssScript.d('font-size', '11pt')),
       cssScript.r('.hephaestian-style-6', cssScript.d('font-family', 'Arial')),
-      cssScript.r('.hephaestian-style-7', cssScript.d('color', '#000000')),
       cssScript.r('.hephaestian-style-9', cssScript.d('font-weight', '400')),
       cssScript.r('.hephaestian-style-10', cssScript.d('font-style', 'normal')),
       cssScript.r('.hephaestian-style-12', cssScript.d('text-decoration', 'none')),
