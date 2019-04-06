@@ -559,8 +559,8 @@ describe('StyleWorkspace', () => {
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
       hscript('div', [
-        hscript('span', { style: 'font-family:serif;font-size:1em;' }, hscript('sup', 'superscript')),
-        hscript('span', { style: 'font-family:serif;font-size:1em;' }, hscript('sub', 'subscript')),
+        hscript('span', hscript('sup', 'superscript')),
+        hscript('span', hscript('sub', 'subscript')),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
@@ -592,7 +592,7 @@ describe('StyleWorkspace', () => {
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
       hscript('body', [
-        hscript('p', { style: 'font-size:1em;' }, [
+        hscript('p', [
           hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
           hscript('span', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
           hscript('span', '], with another, smaller, button reading ['),
@@ -622,11 +622,11 @@ describe('StyleWorkspace', () => {
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
       hscript('p', [
-        hscript('span', { style: 'font-size:1em;' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
         hscript('span', { style: 'font-size:1.27273em;' }, 'INITIATE HACK'),
-        hscript('span', { style: 'font-size:1em;' }, '], with another, smaller, button reading ['),
+        hscript('span', '], with another, smaller, button reading ['),
         hscript('span', { style: 'font-size:0.72727em;' }, 'CANCEL'),
-        hscript('span', { style: 'font-size:1em;' }, '].'),
+        hscript('span', '].'),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
@@ -646,7 +646,7 @@ describe('StyleWorkspace', () => {
     workspace.inlineStylesToClassSelectorStyles();
 
     workspace.handleFontTags();
-    workspace.makeStylesInline();
+    workspace.makeStylesInline(false); // preserve all properties
     const expectedHast = uscript('root', [
       hscript('div', [
         hscript('span', { style: 'font-family:Courier Prime,monospace;' }, hscript('span', { style: 'font-size:20pt;' }, 'Header')),

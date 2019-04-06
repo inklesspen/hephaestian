@@ -552,10 +552,18 @@ export class StyleWorkspace {
     });
   }
 
-  makeStylesInline() {
+  makeStylesInline(filterRules = true) {
+    // all other properties have been dealt with
+    const allowedProperties = ['font-size', 'text-align', 'color'];
     /* eslint-disable no-param-reassign */
     this.styleMap.rules.forEach((rule) => {
-      const inlineStyleString = extractDeclarationText(rule.declarations[0]);
+      const declaration = rule.declarations[0];
+      if (filterRules) {
+        if (!allowedProperties.includes(declaration.property)) return;
+        // 1em is a nullop
+        if (declaration.property === 'font-size' && declaration.value === '1em') return;
+      }
+      const inlineStyleString = extractDeclarationText(declaration);
       cssSelect.query(rule.selectors[0], this.hast).forEach((node) => {
         if (!node.properties.style) node.properties.style = '';
         node.properties.style += inlineStyleString;
