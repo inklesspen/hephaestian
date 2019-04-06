@@ -632,6 +632,29 @@ describe('StyleWorkspace', () => {
     expect(workspace.hast).toEqual(expectedHast);
   });
 
+  it('should convert font tags to font styles', () => {
+    // LibreOffice sometimes uses actual font tags
+    // <font face="Gentium"><font size="5" style="font-size: 20pt">Header</font></font>
+    // the size is ignorable, since it's paired with an actual size style
+    // but we need to get at that font face
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('font', { face: 'Courier Prime,monospace' }, hscript('font', { size: '5', style: 'font-size: 20pt' }, 'Header')),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+
+    workspace.handleFontTags();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('span', { style: 'font-family:Courier Prime,monospace;' }, hscript('span', { style: 'font-size:20pt;' }, 'Header')),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
   it('should convert monospace fonts to code tags', () => {
     // TODO: after upgrading to neutrino v9, convert this to it.each
     const families = [

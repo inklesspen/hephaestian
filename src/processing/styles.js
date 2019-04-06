@@ -440,6 +440,20 @@ export class StyleWorkspace {
     });
   }
 
+  handleFontTags() {
+    cssSelect.query('font', this.hast).forEach((node) => {
+      /* eslint-disable no-param-reassign */
+      if (node.properties.face) {
+        hastClassList(node).add(this.styleMap.addStyle(`font-family:${node.properties.face}`));
+      }
+      delete node.properties.color;
+      delete node.properties.size;
+      delete node.properties.face;
+      node.tagName = 'span';
+      /* eslint-enable no-param-reassign */
+    });
+  }
+
   handleMonospaceFonts() {
     const fontFamilyRules = this.styleMap.rules
       .filter(rule => (rule.declarations[0].property === 'font-family'));
