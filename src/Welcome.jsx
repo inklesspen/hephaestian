@@ -15,7 +15,6 @@ export default function Welcome(props) {
         <li><button type="button" onClick={() => navigate('/upload/html')}>upload html file</button></li>
         <li><button type="button" onClick={() => navigate('/upload/markdown')}>upload markdown file</button></li>
       </ul>
-      Hi <button type="button" onClick={() => navigate('/squire')}>Squire</button>
       <button type="button" onClick={() => navigate('/preview')}>Preview</button>
     </div>
   );

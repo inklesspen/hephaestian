@@ -6,6 +6,7 @@ import About from './About';
 import PasteRichText from './PasteRichText';
 import PasteHistory from './PasteHistory';
 import RichTextPreview from './RichTextPreview';
+import Spinner from './Spinner';
 import styles from './App.module.css';
 
 // TODO: resolve this
@@ -28,6 +29,7 @@ export default class App extends Component {
 
         <Route path="/bug" component={Welcome} />
         <Route path="/pasteHistory" component={PasteHistory} />
+        <Route path="/spinner" component={Spinner} />
       </div>
     );
   }

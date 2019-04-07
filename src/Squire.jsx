@@ -4,11 +4,12 @@ import { connect } from 'react-redux';
 import SquireEditor from 'squire-rte';
 import DOMPurify from 'dompurify';
 
-import { pasteRichText, conversionNotesChanged } from './redux/actions';
-import fixhtml from './processing/fixhtml';
 import styles from './Squire.module.css';
 
-function sanitizeToDOMFragment(dispatchPastedHTML, dispatchConversionNotes, html, isPaste, editor) {
+function extractPastedHtml(handlePastedValue, html, isPaste, editor) {
+  // We have no interest in letting Squire actually post-process the pasted HTML.
+  // We can do that better on our own.
+
   // eslint-disable-next-line no-underscore-dangle
   const editorDoc = editor._doc;
 
@@ -17,19 +18,16 @@ function sanitizeToDOMFragment(dispatchPastedHTML, dispatchConversionNotes, html
   }
 
   if (isPaste) {
-    dispatchPastedHTML(html);
+    handlePastedValue(html);
   }
 
-  const fixed = fixhtml(html);
-
-  const frag = DOMPurify.sanitize(fixed, {
+  const frag = DOMPurify.sanitize('<div><p></p></div>', {
     ALLOW_UNKNOWN_PROTOCOLS: true,
     WHOLE_DOCUMENT: false,
     RETURN_DOM: true,
     RETURN_DOM_FRAGMENT: true,
   });
-  const retval = editorDoc.importNode(frag, true);
-  return retval;
+  return editorDoc.importNode(frag, true);
 }
 
 class Squire extends Component {
@@ -42,32 +40,15 @@ class Squire extends Component {
       // safe iff htmlValue only ever contains previously-sanitized HTML,
       // such as from being pasted in.
       isSetHTMLSanitized: false,
-      sanitizeToDOMFragment: (...args) => sanitizeToDOMFragment(
-        this.props.pasteRichText, this.props.conversionNotesChanged,
+      sanitizeToDOMFragment: (...args) => extractPastedHtml(
+        this.props.handlePastedValue,
         ...args,
       ),
     });
-    this.setHtmlIntoEditor();
-    this.editor.addEventListener('input', () => this.contentsChanged());
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.htmlValue !== prevProps.htmlValue) {
-      this.setHtmlIntoEditor();
-    }
   }
 
   componentWillUnmount() {
     this.editor.destroy();
-  }
-
-  setHtmlIntoEditor() {
-    this.editor.setHTML(this.props.htmlValue || '');
-  }
-
-  contentsChanged() {
-    const newValue = this.editor.getHTML();
-    this.props.onHtmlValueChanged(newValue);
   }
 
   render() {
@@ -80,20 +61,7 @@ class Squire extends Component {
 }
 
 Squire.propTypes = {
-  pasteRichText: PropTypes.func.isRequired,
-  conversionNotesChanged: PropTypes.func.isRequired,
-  htmlValue: PropTypes.string,
-  onHtmlValueChanged: PropTypes.func,
+  handlePastedValue: PropTypes.func.isRequired,
 };
 
-Squire.defaultProps = {
-  htmlValue: null,
-  onHtmlValueChanged: () => {},
-};
-
-const actionCreators = {
-  pasteRichText,
-  conversionNotesChanged,
-};
-
-export default connect(null, actionCreators)(Squire);
+export default connect()(Squire);
