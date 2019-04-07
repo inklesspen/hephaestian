@@ -20,7 +20,6 @@ const markdownValue = createReducer(null, {
   [markdownValueChanged]: (state, action) => action.payload,
 });
 
-const conversionNotes = createReducer({}, {});
 const hastValue = createReducer(null, {});
 
 const rootReducer = combineReducers({
@@ -28,7 +27,6 @@ const rootReducer = combineReducers({
   activeFormat,
   htmlValue,
   markdownValue,
-  conversionNotes,
   hastValue,
 });
 
