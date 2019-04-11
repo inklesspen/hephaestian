@@ -687,4 +687,41 @@ describe('StyleWorkspace', () => {
       expect(workspace.hast).toEqual(expectedHast);
     });
   });
+
+  it('should handle blank lines between paragraphs', () => {
+    const texts = [1, 2, 3, 4, 5, 6, 7].map(() => lorem.generateParagraphs(1));
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        hscript('br'),
+        hscript('p', texts[1]),
+        hscript('br'),
+        hscript('p', texts[2]),
+        hscript('br'),
+        hscript('p', texts[3]),
+        // user forgot to add a blank line here.
+        hscript('p', texts[4]),
+        hscript('br'),
+        hscript('p', texts[5]),
+        hscript('br'),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleWhitespaceBetweenParas();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        hscript('p', texts[1]),
+        hscript('p', texts[2]),
+        hscript('p', texts[3]),
+        hscript('p', texts[4]),
+        hscript('p', texts[5]),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });

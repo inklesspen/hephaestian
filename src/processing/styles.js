@@ -472,6 +472,41 @@ export class StyleWorkspace {
     });
   }
 
+  handleWhitespaceBetweenParas() {
+    // in gdocs, if a user hits enter twice at the end of a paragraph to make a blank line,
+    // this comes out as <p>...</p><br><p>...</p>
+    // therefore, if over half the paragraph tags are followed by br and then another paragraph tag,
+    // remove all brs that follow paragraph tags.
+    const pNodes = cssSelect.query('p', this.hast);
+
+    // p + br:has(+ p) ought to work, but doesn't: https://github.com/fb55/css-select/issues/111
+    // so we'll use utilVisit
+    const brNodes = [];
+    utilVisit(this.hast, node => isElement(node, 'br'), (node, index, parent) => {
+      const prev = parent.children[index - 1];
+      const next = parent.children[index + 1];
+      if ([prev, next].every(n => isElement(n, 'p'))) {
+        brNodes.push(node);
+      }
+      return utilVisit.CONTINUE;
+    });
+    if (brNodes.length > (pNodes.length / 2)) {
+      // due to hast structure, the easiest way to remove these nodes is to set a flag on them
+      brNodes.forEach((node) => {
+        // eslint-disable-next-line no-param-reassign
+        node.properties.deleteme = true;
+      });
+      // then visit the tree with utilVisit and remove the nodes with the flag
+      utilVisit(this.hast, node => isElement(node, 'br'), (node, index, parent) => {
+        if (node.properties.deleteme) {
+          parent.children.splice(index, 1);
+          return index;
+        }
+        return utilVisit.CONTINUE;
+      });
+    }
+  }
+
   convertBisuToStyles() {
     // bold, italic, strikethru, underline
     const bisuStyleMap = {
