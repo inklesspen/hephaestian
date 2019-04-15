@@ -21,6 +21,11 @@ class AdaptedCssSelect {
     if (!unwrap) return wrappedResult;
     return wrappedResult.map(p => p.node);
   }
+  queryOne(query, elems) {
+    const wrapped = Array.isArray(elems) ? elems.map(utilParents) : utilParents(elems);
+    const wrappedResult = realCssSelect.selectOne(query, wrapped, this.options);
+    return (wrappedResult ? wrappedResult.node : null);
+  }
 }
 
 export const cssSelect = new AdaptedCssSelect(cssSelectHastAdapter);

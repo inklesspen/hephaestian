@@ -1,26 +1,14 @@
 import unified from 'unified';
 import rehypeDomStringify from 'rehype-dom-stringify';
-import rehypeDomParse from 'rehype-dom-parse';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
 import hastscript from 'hastscript';
 import isElement from 'hast-util-is-element';
-import produce from 'immer';
-import utilInspect from 'unist-util-inspect';
-import utilParents from 'unist-util-parents';
-import hastUtilSelect from 'hast-util-select';
-import css from 'css';
 import dotProp from 'dot-prop';
 
-import {
-  StyleWorkspace,
-// eslint-disable-next-line import/no-duplicates
-} from './styles';
-// eslint-disable-next-line import/no-duplicates
-import * as styleFuncs from './styles';
+import Note from './notes';
 import { cssSelect } from './util';
 
-// import hastUtilFromHtmlparser2 from '../htmlparser2-utils/hast-util-from-htmlparser2';
 import rehypeHtmlparser2Parse from '../htmlparser2-utils/rehype-htmlparser2-parse';
 
 /*
@@ -48,11 +36,12 @@ function detectGoogleDocs(hast) {
   // followed by a <b> tag with an id that looks like:
   // docs-internal-guid-58cb565c-7fff-99d0-9f19-54c5612ca8fc
   // That <b> tag contains the actual HTML, for some stupid reason. It is always a root element.
-  let foundBTag = false;
+  // on iOS, however, the root appears to be <p>.
+  let foundGuidTag = false;
   utilVisit(hast, (node, _index, parent) => {
-    if (isElement(node, 'b') && parent.type === 'root' &&
+    if (isElement(node) && parent.type === 'root' &&
       dotProp.get(node, 'properties.id', '').startsWith('docs-internal-guid-')) {
-      foundBTag = true;
+      foundGuidTag = true;
       return utilVisit.EXIT;
     }
     if (utilIs({ type: 'element' }, node)) {
@@ -60,95 +49,67 @@ function detectGoogleDocs(hast) {
     }
     return utilVisit.CONTINUE;
   });
-  return foundBTag;
+  return foundGuidTag;
 }
 
-// eslint-disable-next-line no-unused-vars
-function fixGoogleDocs(hast) {
-  // There are some cleanups required before we can allow Squire to parse the HTML.
+function detectPasteSource(hast) {
+  if (detectGoogleDocs(hast)) return [Note.DETECTED_GOOGLE_DOCS];
+  const generatorSelector = 'meta[name=generator],meta[name=Generator]';
+  const generatorNode = cssSelect.queryOne(generatorSelector, hast);
+  /** @type {string} */
+  const generatorValue = dotProp.get(generatorNode, 'properties.content', '');
+  if (generatorValue === 'Cocoa HTML Writer') return [Note.DETECTED_MACOS];
+  if (generatorValue.includes('LibreOffice')) return [Note.DETECTED_LIBREOFFICE];
+  return [];
+}
 
-  const nextHast = produce(hast, (draftHast) => {
-    /* eslint-disable no-param-reassign */
-    utilVisit(draftHast, (node, index, parent) => {
-      // See detectGoogleDocs for the full test, but we don't need to check the id here.
-      if (isElement(node, 'b') && parent.type === 'root') {
-        parent.children.splice(index, 1, hastscript('div', node.children));
+function fixGoogleDocs(hast) {
+  // There are some cleanups required before we can let the DOM touch the HTML.
+
+  utilVisit(hast, (node, index, parent) => {
+    // See detectGoogleDocs for the full test, but we don't need to check the id here.
+    if (isElement(node, 'b') && parent.type === 'root') {
+      parent.children.splice(index, 1, hastscript('div', node.children));
+      return index;
+    }
+    if (isElement(node, 'meta') && parent.type === 'root') {
+      parent.children.splice(index, 1); // remove meta node
+      return index;
+    }
+    // You can't have a <hr> inside a <p>. You just can't.
+    if (isElement(node, 'p')) {
+      if (node.children.length === 1 && isElement(node.children[0], 'hr')) {
+        parent.children.splice(index, 1, ...node.children);
         return index;
       }
-      if (isElement(node, 'meta') && parent.type === 'root') {
-        parent.children.splice(index, 1); // remove meta node
-        return index;
-      }
-      // You can't have a <hr> inside a <p>. You just can't.
-      // However, Squire (wrongly) believes <hr> is inline and will wrap it, adding an extra <br>.
-      // We will have to account for that once the Squire phase is done.
-      // TODO: Detect <div><hr><br></div> in Squire phase and show notice about it.
-      if (isElement(node, 'p')) {
-        if (node.children.length === 1 && isElement(node.children[0], 'hr')) {
-          parent.children.splice(index, 1, ...node.children);
-          return index;
-        }
-      }
-      return utilVisit.CONTINUE;
-    });
-    /* eslint-enable no-param-reassign */
+    }
+    return utilVisit.CONTINUE;
   });
-  return nextHast;
 }
 
 function pruneNonElementRoots(hast) {
   if (!utilIs('root', hast)) {
-    return hast;
+    return;
   }
-  const nextHast = produce(hast, (draftHast) => {
-    // eslint-disable-next-line no-param-reassign
-    draftHast.children = hast.children.filter(node => utilIs('element', node));
-  });
-  return nextHast;
+  // eslint-disable-next-line no-param-reassign
+  hast.children = hast.children.filter(node => utilIs('element', node));
 }
 
-export default function fixhtml(html, doc) {
+export default function fixhtml(html) {
   const processor = unified()
     .use(rehypeHtmlparser2Parse)
     .use(rehypeDomStringify, { fragment: true });
-  let hast = processor.parse(html);
-  hast = pruneNonElementRoots(hast);
-  // TODO: convert these into transformers
-  if (detectGoogleDocs(hast)) {
-    hast = fixGoogleDocs(hast, doc);
+  const hast = processor.parse(html);
+  pruneNonElementRoots(hast);
+  // import produce from 'immer';
+  // hast = produce(hast, (draftHast) => {
+  // });
+  const processingNotes = detectPasteSource(hast);
+  if (processingNotes.includes(Note.DETECTED_GOOGLE_DOCS)) {
+    fixGoogleDocs(hast);
   }
-  hast = produce(hast, (draftHast) => {
-    const ws = new StyleWorkspace(draftHast);
-    ws.inlineStylesToClassSelectorStyles();
-    ws.makeSingleDeclarationSingleClassForm();
-    ws.filterStyleDeclarations();
-    ws.cleanupHeadingStyles();
-    ws.cleanupListItemStyles();
-    ws.normalizeLeftMargins();
-    ws.normalizeFontWeights();
-    ws.normalizeFontSizes();
-    ws.convertStylesToBisu();
-    ws.convertStylesToSupSub();
-    ws.makeStylesInline();
-  });
-  window.lastHast = hast;
-  return processor.stringify(hast);
+  return {
+    html: processor.stringify(hast),
+    notes: processingNotes,
+  };
 }
-
-window.unifiedResources = {
-  utilInspect,
-  utilIs,
-  utilVisit,
-  utilParents,
-  hastscript,
-  rehypeDomStringify,
-  rehypeDomParse,
-  rehypeHtmlparser2Parse,
-  unified,
-  hastUtilSelect,
-  pruneNonElementRoots,
-  produce,
-  cssSelect,
-  css,
-  ...styleFuncs,
-};

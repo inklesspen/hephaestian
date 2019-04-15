@@ -1,11 +1,9 @@
-/* eslint-disable no-unused-vars */
-import css from 'css';
-import color from 'color';
-import colorString from 'color-string';
-import colorDiff from 'color-diff';
+import unified from 'unified';
+import rehypeDomStringify from 'rehype-dom-stringify';
+import rehypeDomParse from 'rehype-dom-parse';
 
+import css from 'css';
 import hastscript from 'hastscript';
-import produce, { original as immerOriginal } from 'immer';
 import utilFind from 'unist-util-find';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
@@ -19,6 +17,7 @@ import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
 import { cssSelect } from './util';
+import Note from './notes';
 
 function extractDirectivesAndValues(rule) {
   const start = rule.indexOf('{') + 1;
@@ -84,16 +83,6 @@ function charactersInNode(node) {
   }
 
   return node.children.map(charactersInNode).reduce(sumReducer, 0);
-}
-
-function extractTextNodes(node) {
-  const textNodes = [];
-  utilVisit(node, (visitedNode) => {
-    if (utilIs('text', visitedNode)) {
-      textNodes.push(visitedNode);
-    }
-  });
-  return textNodes;
 }
 
 const makeEmptyStylesheet = () => ({ type: 'stylesheet', stylesheet: { rules: [], parsingErrors: [] } });
@@ -168,8 +157,9 @@ class StyleMap extends StylesheetManager {
 }
 
 export class StyleWorkspace {
-  constructor(hast) {
+  constructor(hast, notes = []) {
     this.hast = hast;
+    this.notes = notes;
     this.styleMap = new StyleMap();
   }
 
@@ -180,7 +170,7 @@ export class StyleWorkspace {
   }
 
   inlineStylesToClassSelectorStyles() {
-    utilVisit(this.hast, (node, index, parent) => {
+    utilVisit(this.hast, (node) => {
       if (isElement(node) && hasProperty(node, 'style')) {
         const classList = hastClassList(node);
         classList.add(this.styleMap.addStyle(node.properties.style));
@@ -193,13 +183,10 @@ export class StyleWorkspace {
 
   makeSingleDeclarationSingleClassForm() {
     const sheet = new StylesheetManager(this.cycleStyleMap());
-    utilVisit(this.hast, (node, index, parent) => {
-      if (isElement(node, 'style')) {
-        sheet.importSheetString(node.children[0].value);
-        parent.children.splice(index, 1);
-        return index;
-      }
-      return utilVisit.CONTINUE;
+    utilVisit(this.hast, node => isElement(node, 'style'), (node, index, parent) => {
+      sheet.importSheetString(node.children[0].value);
+      parent.children.splice(index, 1);
+      return index;
     });
     sheet.stylesheetContainer.stylesheet.rules.forEach((rule) => {
       rule.selectors.forEach((selector) => {
@@ -477,6 +464,7 @@ export class StyleWorkspace {
     // this comes out as <p>...</p><br><p>...</p>
     // therefore, if over half the paragraph tags are followed by br and then another paragraph tag,
     // remove all brs that follow paragraph tags.
+    // TODO: check on libreoffice/scrivener/etc
     const pNodes = cssSelect.query('p', this.hast);
 
     // p + br:has(+ p) ought to work, but doesn't: https://github.com/fb55/css-select/issues/111
@@ -491,6 +479,7 @@ export class StyleWorkspace {
       return utilVisit.CONTINUE;
     });
     if (brNodes.length > (pNodes.length / 2)) {
+      this.notes.push(Note.INTER_PARA_SPACING);
       // due to hast structure, the easiest way to remove these nodes is to set a flag on them
       brNodes.forEach((node) => {
         // eslint-disable-next-line no-param-reassign
@@ -619,4 +608,35 @@ export class StyleWorkspace {
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
   * <p> inside <li>?
+  * detect <hr> substitutes, like "centered * * *", and convert?
+  *
+  * Add a "what we did" notes section to the style workspace, so we can explain to the user.
   */
+
+export default function cleanStyles(html, notes) {
+  const processor = unified()
+    .use(rehypeDomParse)
+    .use(rehypeDomStringify, { fragment: true });
+  const hast = processor.parse(html);
+  const newNotes = [...notes];
+  const ws = new StyleWorkspace(hast, newNotes); // will mutate hast, newNotes
+  ws.inlineStylesToClassSelectorStyles();
+  ws.makeSingleDeclarationSingleClassForm();
+  ws.narrowToBodyNode();
+  ws.handleFontTags();
+  ws.filterStyleDeclarations();
+  ws.cleanupHeadingStyles();
+  ws.cleanupListItemStyles();
+  ws.normalizeLeftMargins();
+  ws.normalizeFontWeights();
+  ws.normalizeFontSizes();
+  ws.handleWhitespaceBetweenParas();
+  ws.convertStylesToBisu();
+  ws.convertStylesToSupSub();
+  ws.handleMonospaceFonts();
+  ws.makeStylesInline();
+  return {
+    html: processor.stringify(hast),
+    notes: newNotes,
+  };
+}

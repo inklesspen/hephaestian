@@ -1,0 +1,15 @@
+.PreviewContainer {
+    overflow: scroll;
+    height: 400px;
+    border: 1px solid black;
+}
+
+.PreviewContainer h1,h2,h3,p {
+    margin: 1em 0;
+}
+
+.PreviewContainer blockquote {
+    margin: auto auto auto 1.5em;
+    padding: .75em;
+    border-left: 2px solid #999;
+}
