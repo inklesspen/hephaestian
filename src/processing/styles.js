@@ -183,11 +183,14 @@ export class StyleWorkspace {
 
   makeSingleDeclarationSingleClassForm() {
     const sheet = new StylesheetManager(this.cycleStyleMap());
+    let foundStyleNodes = false;
     utilVisit(this.hast, node => isElement(node, 'style'), (node, index, parent) => {
+      foundStyleNodes = true;
       sheet.importSheetString(node.children[0].value);
       parent.children.splice(index, 1);
       return index;
     });
+    if (foundStyleNodes) this.notes.push(Note.PROCESSED_STYLESHEET);
     sheet.stylesheetContainer.stylesheet.rules.forEach((rule) => {
       rule.selectors.forEach((selector) => {
         rule.declarations.flatMap(expandShorthandDeclaration).forEach((declaration) => {
@@ -210,6 +213,7 @@ export class StyleWorkspace {
   narrowToBodyNode() {
     const bodyNode = utilFind(this.hast, node => isElement(node, 'body'));
     if (bodyNode) {
+      this.notes.push(Note.NARROWED_TO_BODY);
       this.hast.children = [bodyNode];
     }
   }
@@ -382,7 +386,8 @@ export class StyleWorkspace {
     // we're assuming nobody actually uses keyword sizes.
     const fontSizeRules = this.styleMap.rules
       .filter(rule => (rule.declarations[0].property === 'font-size'));
-    if (fontSizeRules.length === 0) return;
+    // no need to normalize font sizes if there's less than two size rules
+    if (fontSizeRules.length < 2) return;
     const fontSizeRuleData = {};
     const totalCharacterCount = charactersInNode(this.hast);
     const unitsFound = [];
@@ -424,6 +429,7 @@ export class StyleWorkspace {
         node.properties.className.push(newSizeClass);
       });
     });
+    this.notes.push(Note.NORMALIZED_FONT_SIZE);
   }
 
   handleFontTags() {
@@ -452,19 +458,32 @@ export class StyleWorkspace {
       .filter(rule => parseFamilyValue(rule.declarations[0].value).some(monospacePredicate));
     const monospaceSelector = monospaceFontFamilyRules.map(rule => rule.selectors[0]).join(',');
     const monospaceClasses = monospaceFontFamilyRules.map(rule => rule.selectors[0].substring(1));
+    let monospaceHandled = false;
     cssSelect.query(monospaceSelector, this.hast).forEach((node) => {
       removeClasses(node, monospaceClasses);
       // eslint-disable-next-line no-param-reassign
       node.children = [hastscript('code', node.children)];
+      monospaceHandled = true;
+    });
+    if (monospaceHandled) this.notes.push(Note.MONOSPACE);
+  }
+
+  removeEmptySpans() {
+    utilVisit(this.hast, node => isElement(node, 'span'), (node, index, parent) => {
+      if (node.children.length === 0) {
+        parent.children.splice(index, 1);
+        return index;
+      }
+      return utilVisit.CONTINUE;
     });
   }
 
-  handleWhitespaceBetweenParas() {
+  handleWhitespaceBetweenParasUnnested() {
     // in gdocs, if a user hits enter twice at the end of a paragraph to make a blank line,
     // this comes out as <p>...</p><br><p>...</p>
     // therefore, if over half the paragraph tags are followed by br and then another paragraph tag,
     // remove all brs that follow paragraph tags.
-    // TODO: check on libreoffice/scrivener/etc
+
     const pNodes = cssSelect.query('p', this.hast);
 
     // p + br:has(+ p) ought to work, but doesn't: https://github.com/fb55/css-select/issues/111
@@ -493,6 +512,62 @@ export class StyleWorkspace {
         }
         return utilVisit.CONTINUE;
       });
+    }
+  }
+
+  handleWhitespaceBetweenParasNested() {
+    // cocoa text does it differently, of course:
+    // <p style="min-height: 18.0px"><br></p>
+    // there might be a <span> inside the <p> though
+    // <p style="min-height: 18.0px"><span style="font-kerning: none"></span><br></p>
+    // and LibreOffice just has <p style="text-indent: 0.5in; margin-bottom: 0in"><br/></p>
+    // where the <p> styles are the same styles used on all other <p> tags.
+    // make a method that removes spans with no content.
+    // then just detect <p><br><p> the same way we detect <br> for gdocs
+
+    const realParas = [];
+    const brParas = [];
+
+    const isBrPara = (node => isElement(node, 'p') && node.children.length === 1 && isElement(node.children[0], 'br'));
+    utilVisit(this.hast, node => isElement(node, 'p'), (node, index, parent) => {
+      if (isBrPara(node)) {
+        const prev = parent.children[index - 1];
+        const next = parent.children[index + 1];
+        if ([prev, next].every(n => !isBrPara(n))) {
+          brParas.push(node);
+        }
+      } else {
+        realParas.push(node);
+      }
+      return utilVisit.CONTINUE;
+    });
+    if (brParas.length > (realParas.length / 2)) {
+      this.notes.push(Note.INTER_PARA_SPACING);
+      // due to hast structure, the easiest way to remove these nodes is to set a flag on them
+      brParas.forEach((node) => {
+        // eslint-disable-next-line no-param-reassign
+        node.properties.deleteme = true;
+      });
+      // then visit the tree with utilVisit and remove the nodes with the flag
+      utilVisit(this.hast, node => isElement(node, 'p'), (node, index, parent) => {
+        if (node.properties.deleteme) {
+          parent.children.splice(index, 1);
+          return index;
+        }
+        return utilVisit.CONTINUE;
+      });
+    }
+  }
+
+  handleWhitespaceBetweenParas() {
+    // TODO: refactor both of these together
+    if (this.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
+      this.handleWhitespaceBetweenParasUnnested();
+    }
+    if (
+      this.notes.includes(Note.DETECTED_LIBREOFFICE) ||
+      this.notes.includes(Note.DETECTED_MACOS)) {
+      this.handleWhitespaceBetweenParasNested();
     }
   }
 
@@ -622,14 +697,21 @@ export default function cleanStyles(html, notes) {
   const ws = new StyleWorkspace(hast, newNotes); // will mutate hast, newNotes
   ws.inlineStylesToClassSelectorStyles();
   ws.makeSingleDeclarationSingleClassForm();
-  ws.narrowToBodyNode();
-  ws.handleFontTags();
+  if (!ws.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
+    ws.narrowToBodyNode();
+  }
+  if (ws.notes.includes(Note.DETECTED_LIBREOFFICE)) {
+    ws.handleFontTags();
+  }
   ws.filterStyleDeclarations();
-  ws.cleanupHeadingStyles();
-  ws.cleanupListItemStyles();
+  if (ws.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
+    ws.cleanupHeadingStyles();
+    ws.cleanupListItemStyles();
+  }
   ws.normalizeLeftMargins();
   ws.normalizeFontWeights();
   ws.normalizeFontSizes();
+  ws.removeEmptySpans();
   ws.handleWhitespaceBetweenParas();
   ws.convertStylesToBisu();
   ws.convertStylesToSupSub();

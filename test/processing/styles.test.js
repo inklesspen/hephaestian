@@ -3,6 +3,7 @@ import uscript from 'unist-builder';
 import { LoremIpsum } from 'lorem-ipsum';
 
 import { cssScript, StyleWorkspace } from '../../src/processing/styles';
+import Note from '../../src/processing/notes';
 
 const lorem = new LoremIpsum();
 
@@ -95,6 +96,7 @@ describe('StyleWorkspace', () => {
       cssScript.r('.hephaestian-style-9', cssScript.d('font-weight', '700')),
     ];
     expect(workspace.styleMap.rules).toEqual(expectedRules);
+    expect(workspace.notes).not.toContain(Note.PROCESSED_STYLESHEET);
   });
 
   it('should convert multi-declaration rules in style elements to single-declaration form', () => {
@@ -133,6 +135,7 @@ describe('StyleWorkspace', () => {
     ];
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.styleMap.rules).toEqual(expectedRules);
+    expect(workspace.notes).toContain(Note.PROCESSED_STYLESHEET);
   });
 
   it('should convert bisu nodes to styles', () => {
@@ -320,6 +323,7 @@ describe('StyleWorkspace', () => {
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.NARROWED_TO_BODY);
   });
 
   it('should leave the tree alone when no body node', () => {
@@ -331,6 +335,7 @@ describe('StyleWorkspace', () => {
     const workspace = new StyleWorkspace(inputHast);
     workspace.narrowToBodyNode();
     expect(workspace.hast).toEqual(inputHast);
+    expect(workspace.notes).not.toContain(Note.NARROWED_TO_BODY);
   });
 
   it('should normalize gdocs-style margins', () => {
@@ -601,6 +606,7 @@ describe('StyleWorkspace', () => {
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.NORMALIZED_FONT_SIZE);
   });
 
   it('should normalize font sizes given in pt', () => {
@@ -629,6 +635,7 @@ describe('StyleWorkspace', () => {
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.NORMALIZED_FONT_SIZE);
   });
 
   it('should convert font tags to font styles', () => {
@@ -685,6 +692,7 @@ describe('StyleWorkspace', () => {
         ]),
       ]);
       expect(workspace.hast).toEqual(expectedHast);
+      expect(workspace.notes).toContain(Note.MONOSPACE);
     });
   });
 
@@ -708,7 +716,7 @@ describe('StyleWorkspace', () => {
         hscript('p', texts[6]),
       ]),
     ]);
-    const workspace = new StyleWorkspace(inputHast);
+    const workspace = new StyleWorkspace(inputHast, [Note.DETECTED_GOOGLE_DOCS]);
     workspace.handleWhitespaceBetweenParas();
     const expectedHast = uscript('root', [
       hscript('div', [
@@ -723,5 +731,54 @@ describe('StyleWorkspace', () => {
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
+  });
+
+  it('should handle desktop apps\'s blank lines between paragraphs', () => {
+    // <p style="min-height: 18.0px"><br></p>
+    // there might be a <span> inside the <p> though
+    // <p style="min-height: 18.0px"><span style="font-kerning: none"></span><br></p>
+    // that one's from TextEdit.
+    // and LibreOffice just has <p style="text-indent: 0.5in; margin-bottom: 0in"><br/></p>
+    // where the <p> styles are the same styles used on all other <p> tags.
+    // so this test works for LibreOffice too.
+    const texts = [1, 2, 3, 4, 5, 6, 7].map(() => lorem.generateParagraphs(1));
+    const makeBlankPara = () => hscript('p', [hscript('span'), hscript('br')]);
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        makeBlankPara(),
+        hscript('p', texts[1]),
+        makeBlankPara(),
+        hscript('p', texts[2]),
+        makeBlankPara(),
+        hscript('p', texts[3]),
+        // user forgot to add a blank line here.
+        hscript('p', texts[4]),
+        makeBlankPara(),
+        hscript('p', texts[5]),
+        makeBlankPara(),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast, [Note.DETECTED_MACOS]);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.removeEmptySpans();
+    workspace.handleWhitespaceBetweenParas();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        hscript('p', texts[1]),
+        hscript('p', texts[2]),
+        hscript('p', texts[3]),
+        hscript('p', texts[4]),
+        hscript('p', texts[5]),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
   });
 });

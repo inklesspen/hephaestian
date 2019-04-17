@@ -2,9 +2,7 @@ import { createAction } from 'redux-starter-kit';
 
 import * as bluebird from 'bluebird';
 
-import { processHtml, processMarkdown } from '../processing/cleanup';
-import fixhtml from '../processing/fixhtml';
-import cleanStyles from '../processing/styles';
+import { cleanupRichText } from '../processing/cleanup';
 
 export const resetState = createAction('reset');
 export function resetStateAndHistory(history) {
@@ -17,8 +15,9 @@ export function resetStateAndHistory(history) {
 export const pasteRichText = createAction('richText/paste');
 export const htmlValueChanged = createAction('html/valueChanged');
 export const markdownValueChanged = createAction('markdown/valueChanged');
+export const processingNotesChanged = createAction('processingNotesChanged');
 
-export const valueProcessed = createAction('richText/processed');
+// export const valueProcessed = createAction('richText/processed');
 
 export function processPastedRichText(pastedHtml, historyPush) {
   return (dispatch) => {
@@ -26,26 +25,24 @@ export function processPastedRichText(pastedHtml, historyPush) {
     bluebird.delay(10).then(() => {
       dispatch(pasteRichText(pastedHtml));
       historyPush('/spinner');
-    }).then(() => fixhtml(pastedHtml)).then(({ notes, html }) => {
-      const result = cleanStyles(html, notes);
-      const fixedHtml = result.html;
-      // eslint-disable-next-line no-console
-      console.log(result.notes);
-      dispatch(htmlValueChanged(fixedHtml));
+    }).then(() => cleanupRichText(pastedHtml)).then(({ html, notes }) => {
+      dispatch(htmlValueChanged(html));
+      // can't put Note objects in the state, but the enum names are fine.
+      dispatch(processingNotesChanged(notes.map(note => note.name)));
       historyPush('/preview');
     });
   };
 }
 
-export function previewResult(history) {
-  return (dispatch, getState) => {
-    const currentState = getState();
-    const format = currentState.activeFormat;
-    const [value, func] = (format === 'html') ?
-      [currentState.htmlValue, processHtml] :
-      [currentState.markdownValue, processMarkdown];
+// export function previewResult(history) {
+//   return (dispatch, getState) => {
+//     const currentState = getState();
+//     const format = currentState.activeFormat;
+//     const [value, func] = (format === 'html') ?
+//       [currentState.htmlValue, processHtml] :
+//       [currentState.markdownValue, processMarkdown];
 
-    dispatch(valueProcessed(func(value)));
-    history.go('/preview');
-  };
-}
+//     dispatch(valueProcessed(func(value)));
+//     history.go('/preview');
+//   };
+// }

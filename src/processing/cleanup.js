@@ -1,26 +1,16 @@
-import unified from 'unified';
-import rehypeDomParse from 'rehype-dom-parse';
-import rehypeDomStringify from 'rehype-dom-stringify';
-import remarkParse from 'remark-parse';
-import remarkToRehype from 'remark-rehype';
-// import remarkStringify from 'remark-stringify';
-// import utilIs from 'unist-util-is';
-// import utilVisit from 'unist-util-visit';
-// import hastscript from 'hastscript';
-// import produce from 'immer';
-// import utilInspect from 'unist-util-inspect';
+import domPurify from 'dompurify';
 
-export function processHtml(html) {
-  const processor = unified()
-    .use(rehypeDomParse)
-    .use(rehypeDomStringify, { fragment: true });
-  return processor.processSync(html);
-}
+import fixhtml from './fixhtml';
+import cleanStyles from './styles';
 
-export function processMarkdown(markdown) {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkToRehype)
-    .use(rehypeDomStringify, { fragment: true });
-  return processor.processSync(markdown);
+const domPurifyOptions = {
+  FORBID_ATTR: ['dir'],
+};
+
+// eslint-disable-next-line import/prefer-default-export
+export function cleanupRichText(html) {
+  const validated = fixhtml(html);
+  const cleanedHtml = domPurify.sanitize(validated.html, domPurifyOptions);
+  const result = cleanStyles(cleanedHtml, validated.notes);
+  return result;
 }

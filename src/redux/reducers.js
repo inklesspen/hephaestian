@@ -1,7 +1,7 @@
 import { createReducer } from 'redux-starter-kit';
 import { combineReducers } from 'redux';
 
-import { resetState, pasteRichText, htmlValueChanged, markdownValueChanged } from './actions';
+import { resetState, pasteRichText, htmlValueChanged, markdownValueChanged, processingNotesChanged } from './actions';
 
 const pastedRichText = createReducer(null, {
   [pasteRichText]: (state, action) => action.payload,
@@ -20,14 +20,16 @@ const markdownValue = createReducer(null, {
   [markdownValueChanged]: (state, action) => action.payload,
 });
 
-const hastValue = createReducer(null, {});
+const processingNotes = createReducer(null, {
+  [processingNotesChanged]: (state, action) => action.payload,
+});
 
 const rootReducer = combineReducers({
   pastedRichText,
   activeFormat,
   htmlValue,
   markdownValue,
-  hastValue,
+  processingNotes,
 });
 
 function resettableReducer(state = {}, action) {

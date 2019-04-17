@@ -1,18 +1,12 @@
 <https://www.npmjs.com/package/fetch-fic>
 
-https://summernote.org/ preserves all copy-pasted formatting, but doesn't clean the HTML.
-latest http://neilj.github.io/Squire/ handles almost everything, but loses strikethru and adds extra blank paragraphs after horizontal rules
-Quill will likely be very good once 2.0 is released, but until then....
-
-TODO: Detect <div><hr><br></div> in Squire phase and show notice about it.
-
 
 # Header
 Explanation of Hephaestian's purpose, bug report button, reset state button
 
 # Welcome
 
-Choose: paste rich text, paste html, paste markdown, upload html file, upload markdown file
+Choose: paste rich text, paste markdown, upload html file, upload markdown file
 
 # Textarea
 
@@ -34,7 +28,9 @@ Resolve cross-platform problems (such as colored text, links, etc).
 
 # Export
 
-ffnet-optimized HTML, ao3-optimized HTML, SB/SV-optimized bbcode, SA-optimized bbcode, Markdown, Discord Markdown blocks, Hephaestian-optimized HTML (for later re-import), or all as zip file
+ffnet-optimized HTML, ao3-optimized HTML, SB/SV-optimized bbcode, SA-optimized bbcode, Markdown, Discord Markdown blocks, Hephaestian-optimized HTML (for later re-import, use <meta name="generator" content="Hephaestian 1.0.1">), or all as zip file
+
+standalone web page format, with TOC for headers? might be nice for PCT exchanges
 
 
 Use rehype/remark for HTML/Markdown manipulation.
@@ -49,8 +45,6 @@ in combination with https://www.npmjs.com/package/color-string and https://www.n
 
 https://archiveofourown.org/skins/229 has the colors allowed
 
-TODO: need to detect styling applied to the entire text (or almost all), change it to be a default, and remove it
-
 https://redux-starter-kit.js.org/introduction/quick-start
 https://github.com/redux-saga/redux-saga
 https://reacttraining.com/react-router/web/guides/redux-integration
@@ -61,3 +55,12 @@ forums: sb/sv support 1-7 where 4 is approximately 'normal'; 4 is 15px while nor
  - use this to replace h1/h2/h3
  - full set: 9, 10, 12, 15, 18, 22, 26
 SA only supports sizes in custom titles so forget about it.
+
+libreoffice sometimes uses actual font tags, wtf.
+<font face="Gentium"><font size="5" style="font-size: 20pt">The Carpet Merchants</font></font>
+(this sample is copied from an old word doc)
+
+we're not supporting font size keywords, but if we were, https://drafts.csswg.org/css-fonts-3/#font-size-prop has helpful data
+
+TODO: migrate to neutrino 9 and/or away from neutrino
+then use git-revision-webpack-plugin and https://webpack.js.org/loaders/val-loader
