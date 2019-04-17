@@ -316,11 +316,9 @@ describe('StyleWorkspace', () => {
     const workspace = new StyleWorkspace(inputHast);
     workspace.narrowToBodyNode();
     const expectedHast = uscript('root', [
-      hscript('body', [
-        hscript('p', 'Some body text'),
-        hscript('p', hscript('br')),
-        hscript('p', hscript('span', 'More body text')),
-      ]),
+      hscript('p', 'Some body text'),
+      hscript('p', hscript('br')),
+      hscript('p', hscript('span', 'More body text')),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.notes).toContain(Note.NARROWED_TO_BODY);
@@ -406,17 +404,15 @@ describe('StyleWorkspace', () => {
     // using the same text for every paragraph so we can be sure to trigger the 75% threshold
     const text = lorem.generateParagraphs(1);
     const inputHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-2' }, text),
-        hscript('p', { class: 'hephaestian-style-2' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-        hscript('p', { class: 'hephaestian-style-1' }, text),
-      ]),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-2' }, text),
+      hscript('p', { class: 'hephaestian-style-2' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
+      hscript('p', { class: 'hephaestian-style-1' }, text),
     ]);
     const inputRules = [
       cssScript.r('.hephaestian-style-1', cssScript.d('margin-left', '0.0px')),
@@ -427,17 +423,15 @@ describe('StyleWorkspace', () => {
     workspace.styleMap.classNameCounter = inputRules.length;
     workspace.normalizeLeftMargins();
     const expectedHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-        hscript('blockquote', { class: '' }, text),
-        hscript('blockquote', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-        hscript('p', { class: '' }, text),
-      ]),
+      hscript('p', { class: '' }, text),
+      hscript('p', { class: '' }, text),
+      hscript('p', { class: '' }, text),
+      hscript('p', { class: '' }, text),
+      hscript('blockquote', { class: '' }, text),
+      hscript('blockquote', { class: '' }, text),
+      hscript('p', { class: '' }, text),
+      hscript('p', { class: '' }, text),
+      hscript('p', { class: '' }, text),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.styleMap.rules).toEqual([]);
@@ -446,16 +440,14 @@ describe('StyleWorkspace', () => {
   it('should normalize font-weights', () => {
     const texts = [1, 2, 3, 4, 5, 6, 7, 8].map(() => lorem.generateParagraphs(1));
     const inputHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { class: 'hephaestian-style-1' }, texts[0]),
-        hscript('p', { class: 'hephaestian-style-2' }, texts[1]),
-        hscript('p', { class: 'hephaestian-style-3' }, texts[2]),
-        hscript('p', { class: 'hephaestian-style-4' }, texts[3]),
-        hscript('p', { class: 'hephaestian-style-5' }, texts[4]),
-        hscript('p', { class: 'hephaestian-style-2' }, texts[5]),
-        hscript('p', { class: 'hephaestian-style-6' }, texts[6]),
-        hscript('p', { class: 'hephaestian-style-7' }, texts[7]),
-      ]),
+      hscript('p', { class: 'hephaestian-style-1' }, texts[0]),
+      hscript('p', { class: 'hephaestian-style-2' }, texts[1]),
+      hscript('p', { class: 'hephaestian-style-3' }, texts[2]),
+      hscript('p', { class: 'hephaestian-style-4' }, texts[3]),
+      hscript('p', { class: 'hephaestian-style-5' }, texts[4]),
+      hscript('p', { class: 'hephaestian-style-2' }, texts[5]),
+      hscript('p', { class: 'hephaestian-style-6' }, texts[6]),
+      hscript('p', { class: 'hephaestian-style-7' }, texts[7]),
     ]);
     const inputRules = [
       cssScript.r('.hephaestian-style-1', cssScript.d('font-weight', 'normal')),
@@ -472,16 +464,14 @@ describe('StyleWorkspace', () => {
 
     workspace.normalizeFontWeights();
     const expectedHast = uscript('root', [
-      hscript('body', [
-        hscript('p', { class: 'hephaestian-style-8' }, texts[0]),
-        hscript('p', { class: 'hephaestian-style-9' }, texts[1]),
-        hscript('p', { class: 'hephaestian-style-8' }, texts[2]),
-        hscript('p', { class: 'hephaestian-style-8' }, texts[3]),
-        hscript('p', { class: 'hephaestian-style-9' }, texts[4]),
-        hscript('p', { class: 'hephaestian-style-9' }, texts[5]),
-        hscript('p', { class: 'hephaestian-style-9' }, texts[6]),
-        hscript('p', { class: 'hephaestian-style-9' }, texts[7]),
-      ]),
+      hscript('p', { class: 'hephaestian-style-8' }, texts[0]),
+      hscript('p', { class: 'hephaestian-style-9' }, texts[1]),
+      hscript('p', { class: 'hephaestian-style-8' }, texts[2]),
+      hscript('p', { class: 'hephaestian-style-8' }, texts[3]),
+      hscript('p', { class: 'hephaestian-style-9' }, texts[4]),
+      hscript('p', { class: 'hephaestian-style-9' }, texts[5]),
+      hscript('p', { class: 'hephaestian-style-9' }, texts[6]),
+      hscript('p', { class: 'hephaestian-style-9' }, texts[7]),
     ]);
     const expectedRules = [
       cssScript.r('.hephaestian-style-8', cssScript.d('font-weight', 'normal')),
@@ -595,14 +585,12 @@ describe('StyleWorkspace', () => {
     workspace.normalizeFontSizes();
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
-      hscript('body', [
-        hscript('p', [
-          hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
-          hscript('span', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
-          hscript('span', '], with another, smaller, button reading ['),
-          hscript('span', { style: 'font-size:0.75em;' }, 'CANCEL'),
-          hscript('span', '].'),
-        ]),
+      hscript('p', [
+        hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
+        hscript('span', '], with another, smaller, button reading ['),
+        hscript('span', { style: 'font-size:0.75em;' }, 'CANCEL'),
+        hscript('span', '].'),
       ]),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
@@ -669,12 +657,10 @@ describe('StyleWorkspace', () => {
     ];
     families.forEach((family) => {
       const inputHast = uscript('root', [
-        hscript('body', [
-          hscript('p', [
-            'The dot-matrix printout said simply, ',
-            hscript('span', { style: `font-family: ${family};` }, 'You will die in 24 hours.'),
-            ' I screamed.',
-          ]),
+        hscript('p', [
+          'The dot-matrix printout said simply, ',
+          hscript('span', { style: `font-family: ${family};` }, 'You will die in 24 hours.'),
+          ' I screamed.',
         ]),
       ]);
       const workspace = new StyleWorkspace(inputHast);
@@ -683,12 +669,10 @@ describe('StyleWorkspace', () => {
       workspace.handleMonospaceFonts();
       workspace.makeStylesInline();
       const expectedHast = uscript('root', [
-        hscript('body', [
-          hscript('p', [
-            'The dot-matrix printout said simply, ',
-            hscript('span', hscript('code', 'You will die in 24 hours.')),
-            ' I screamed.',
-          ]),
+        hscript('p', [
+          'The dot-matrix printout said simply, ',
+          hscript('span', hscript('code', 'You will die in 24 hours.')),
+          ' I screamed.',
         ]),
       ]);
       expect(workspace.hast).toEqual(expectedHast);

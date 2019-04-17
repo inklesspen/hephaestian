@@ -214,7 +214,7 @@ export class StyleWorkspace {
     const bodyNode = utilFind(this.hast, node => isElement(node, 'body'));
     if (bodyNode) {
       this.notes.push(Note.NARROWED_TO_BODY);
-      this.hast.children = [bodyNode];
+      this.hast.children = [...bodyNode.children];
     }
   }
 
