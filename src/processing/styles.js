@@ -560,6 +560,41 @@ export class StyleWorkspace {
     }
   }
 
+  handleWhitespaceBetweenParasEmptyPara() {
+    const realParas = [];
+    const emptyParas = [];
+
+    const isEmptyPara = (node => isElement(node, 'p') && node.children.length === 0);
+    utilVisit(this.hast, node => isElement(node, 'p'), (node, index, parent) => {
+      if (isEmptyPara(node)) {
+        const prev = parent.children[index - 1];
+        const next = parent.children[index + 1];
+        if ([prev, next].every(n => !isEmptyPara(n))) {
+          emptyParas.push(node);
+        }
+      } else {
+        realParas.push(node);
+      }
+      return utilVisit.CONTINUE;
+    });
+    if (emptyParas.length > (realParas.length / 2)) {
+      this.notes.push(Note.INTER_PARA_SPACING);
+      // due to hast structure, the easiest way to remove these nodes is to set a flag on them
+      emptyParas.forEach((node) => {
+        // eslint-disable-next-line no-param-reassign
+        node.properties.deleteme = true;
+      });
+      // then visit the tree with utilVisit and remove the nodes with the flag
+      utilVisit(this.hast, node => isElement(node, 'p'), (node, index, parent) => {
+        if (node.properties.deleteme) {
+          parent.children.splice(index, 1);
+          return index;
+        }
+        return utilVisit.CONTINUE;
+      });
+    }
+  }
+
   handleWhitespaceBetweenParas() {
     // TODO: refactor both of these together
     if (this.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
@@ -569,6 +604,9 @@ export class StyleWorkspace {
       this.notes.includes(Note.DETECTED_LIBREOFFICE) ||
       this.notes.includes(Note.DETECTED_MACOS)) {
       this.handleWhitespaceBetweenParasNested();
+    }
+    if (this.notes.includes(Note.DETECTED_MSWORD)) {
+      this.handleWhitespaceBetweenParasEmptyPara();
     }
   }
 

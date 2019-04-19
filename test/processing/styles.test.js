@@ -765,4 +765,48 @@ describe('StyleWorkspace', () => {
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
   });
+
+  it('should handle msword\'s blank lines between paragraphs', () => {
+    // <p class=MsoNormal><span style='font-size:9.0pt;line-height:115%;font-family:
+    // "Courier New"'></span></p>
+    // the empty span is removed by removeEmptySpans()
+    // so just an empty paragraph
+    const texts = [1, 2, 3, 4, 5, 6, 7].map(() => lorem.generateParagraphs(1));
+    const makeBlankPara = () => hscript('p', [hscript('span')]);
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        makeBlankPara(),
+        hscript('p', texts[1]),
+        makeBlankPara(),
+        hscript('p', texts[2]),
+        makeBlankPara(),
+        hscript('p', texts[3]),
+        // user forgot to add a blank line here.
+        hscript('p', texts[4]),
+        makeBlankPara(),
+        hscript('p', texts[5]),
+        makeBlankPara(),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast, [Note.DETECTED_MSWORD]);
+    workspace.removeEmptySpans();
+    workspace.handleWhitespaceBetweenParas();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', texts[0]),
+        hscript('p', texts[1]),
+        hscript('p', texts[2]),
+        hscript('p', texts[3]),
+        hscript('p', texts[4]),
+        hscript('p', texts[5]),
+        hscript('p', texts[6]),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
+  });
 });

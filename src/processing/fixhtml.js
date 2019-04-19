@@ -61,6 +61,7 @@ function detectPasteSource(hast) {
   const generatorValue = dotProp.get(generatorNode, 'properties.content', '');
   if (generatorValue === 'Cocoa HTML Writer') return [Note.DETECTED_MACOS];
   if (generatorValue.includes('LibreOffice')) return [Note.DETECTED_LIBREOFFICE];
+  if (generatorValue.includes('Microsoft Word')) return [Note.DETECTED_MSWORD];
   return [];
 }
 
@@ -83,6 +84,22 @@ function fixGoogleDocs(hast) {
         parent.children.splice(index, 1, ...node.children);
         return index;
       }
+    }
+    return utilVisit.CONTINUE;
+  });
+}
+
+function fixMsWord(hast) {
+  utilVisit(hast, (node, index, parent) => {
+    if (node.type === 'comment' && isElement(parent, 'body')) {
+      // yeet
+      parent.children.splice(index, 1);
+      return index;
+    }
+    if (isElement(node, 'o:p')) {
+      // yeet
+      parent.children.splice(index, 1);
+      return index;
     }
     return utilVisit.CONTINUE;
   });

@@ -50,6 +50,21 @@ describe('libreoffice', () => {
   });
 });
 
+describe('msword', () => {
+  it('should recognize msword', () => {
+    // <meta name=Generator content="Microsoft Word 12">
+    // working from a single sample here tbh
+    const actual = fixhtml(inputsamples.msWord);
+    const expected = {
+      // Need to remove comments like <!--StartFragment-->
+      // also <o:p> tags, which are useless
+      html: outputsamples.msWord,
+      notes: [Note.DETECTED_MSWORD],
+    };
+    expect(actual).toEqual(expected);
+  });
+});
+
 describe('cocoa text', () => {
   // Scrivener, Byword, and other tools using Cocoa's rich text support
   // all have the same sort of HTML output.
