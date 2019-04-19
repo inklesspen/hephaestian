@@ -1,5 +1,6 @@
 import unified from 'unified';
-import rehypeDomStringify from 'rehype-dom-stringify';
+import { serialize as parse5Serialize } from 'parse5';
+import hastUtilToParse5 from 'hast-util-to-parse5';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
 import hastscript from 'hastscript';
@@ -97,19 +98,19 @@ function pruneNonElementRoots(hast) {
 
 export default function fixhtml(html) {
   const processor = unified()
-    .use(rehypeHtmlparser2Parse)
-    .use(rehypeDomStringify, { fragment: true });
+    .use(rehypeHtmlparser2Parse);
   const hast = processor.parse(html);
   pruneNonElementRoots(hast);
-  // import produce from 'immer';
-  // hast = produce(hast, (draftHast) => {
-  // });
   const processingNotes = detectPasteSource(hast);
   if (processingNotes.includes(Note.DETECTED_GOOGLE_DOCS)) {
     fixGoogleDocs(hast);
   }
+  if (processingNotes.includes(Note.DETECTED_MSWORD)) {
+    fixMsWord(hast);
+  }
+  const ast = hastUtilToParse5(hast);
   return {
-    html: processor.stringify(hast),
+    html: parse5Serialize(ast),
     notes: processingNotes,
   };
 }

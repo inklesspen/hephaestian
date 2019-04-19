@@ -1,6 +1,7 @@
 import unified from 'unified';
-import rehypeDomStringify from 'rehype-dom-stringify';
-import rehypeDomParse from 'rehype-dom-parse';
+import { serialize as parse5Serialize } from 'parse5';
+import hastUtilToParse5 from 'hast-util-to-parse5';
+import rehypeParse from 'rehype-parse';
 
 import css from 'css';
 import hastscript from 'hastscript';
@@ -690,8 +691,7 @@ export class StyleWorkspace {
 
 export default function cleanStyles(html, notes) {
   const processor = unified()
-    .use(rehypeDomParse)
-    .use(rehypeDomStringify, { fragment: true });
+    .use(rehypeParse, { fragment: true });
   const hast = processor.parse(html);
   const newNotes = [...notes];
   const ws = new StyleWorkspace(hast, newNotes); // will mutate hast, newNotes
@@ -717,8 +717,9 @@ export default function cleanStyles(html, notes) {
   ws.convertStylesToSupSub();
   ws.handleMonospaceFonts();
   ws.makeStylesInline();
+  const ast = hastUtilToParse5(hast);
   return {
-    html: processor.stringify(hast),
+    html: parse5Serialize(ast),
     notes: newNotes,
   };
 }
