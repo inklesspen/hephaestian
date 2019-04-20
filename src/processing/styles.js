@@ -711,6 +711,16 @@ export class StyleWorkspace {
     });
     /* eslint-enable no-param-reassign */
   }
+
+  removeUnneededSpans() {
+    utilVisit(this.hast, node => isElement(node, 'span'), (node, index, parent) => {
+      if (Object.keys(node.properties).length === 0) {
+        parent.children.splice(index, 1, ...node.children);
+        return index;
+      }
+      return utilVisit.CONTINUE;
+    });
+  }
 }
 
 /** TODOs
@@ -755,6 +765,7 @@ export default function cleanStyles(html, notes) {
   ws.convertStylesToSupSub();
   ws.handleMonospaceFonts();
   ws.makeStylesInline();
+  ws.removeUnneededSpans();
   return {
     html: processor.stringify(hast),
     notes: newNotes,

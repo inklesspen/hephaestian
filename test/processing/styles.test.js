@@ -809,4 +809,27 @@ describe('StyleWorkspace', () => {
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
   });
+
+  it('should remove excess spans', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('span', hscript('span')),
+        hscript('span'),
+        hscript('span', 'Hello '),
+        hscript('span', { style: 'font-size: 1.1em;' }, 'World'),
+        hscript('span', hscript('b', '!')),
+        hscript('span'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.removeUnneededSpans();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        'Hello ',
+        hscript('span', { style: 'font-size: 1.1em;' }, 'World'),
+        hscript('b', '!'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });
