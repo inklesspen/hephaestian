@@ -1,6 +1,4 @@
 import unified from 'unified';
-import { serialize as parse5Serialize } from 'parse5';
-import hastUtilToParse5 from 'hast-util-to-parse5';
 import rehypeParse from 'rehype-parse';
 
 import css from 'css';
@@ -17,6 +15,7 @@ import parseUnit from 'parse-unit';
 import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
+import rehypeParse5Stringify from './rehype-parse5-stringify';
 import { cssSelect } from './util';
 import Note from './notes';
 
@@ -729,7 +728,8 @@ export class StyleWorkspace {
 
 export default function cleanStyles(html, notes) {
   const processor = unified()
-    .use(rehypeParse, { fragment: true });
+    .use(rehypeParse, { fragment: true })
+    .use(rehypeParse5Stringify);
   const hast = processor.parse(html);
   const newNotes = [...notes];
   const ws = new StyleWorkspace(hast, newNotes); // will mutate hast, newNotes
@@ -755,9 +755,8 @@ export default function cleanStyles(html, notes) {
   ws.convertStylesToSupSub();
   ws.handleMonospaceFonts();
   ws.makeStylesInline();
-  const ast = hastUtilToParse5(hast);
   return {
-    html: parse5Serialize(ast),
+    html: processor.stringify(hast),
     notes: newNotes,
   };
 }

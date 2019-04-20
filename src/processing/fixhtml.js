@@ -1,6 +1,4 @@
 import unified from 'unified';
-import { serialize as parse5Serialize } from 'parse5';
-import hastUtilToParse5 from 'hast-util-to-parse5';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
 import hastscript from 'hastscript';
@@ -11,6 +9,7 @@ import Note from './notes';
 import { cssSelect } from './util';
 
 import rehypeHtmlparser2Parse from '../htmlparser2-utils/rehype-htmlparser2-parse';
+import rehypeParse5Stringify from './rehype-parse5-stringify';
 
 /*
  * Different rich text engines, different platforms, tons of bad behaviors.
@@ -115,7 +114,8 @@ function pruneNonElementRoots(hast) {
 
 export default function fixhtml(html) {
   const processor = unified()
-    .use(rehypeHtmlparser2Parse);
+    .use(rehypeHtmlparser2Parse)
+    .use(rehypeParse5Stringify);
   const hast = processor.parse(html);
   pruneNonElementRoots(hast);
   const processingNotes = detectPasteSource(hast);
@@ -125,9 +125,8 @@ export default function fixhtml(html) {
   if (processingNotes.includes(Note.DETECTED_MSWORD)) {
     fixMsWord(hast);
   }
-  const ast = hastUtilToParse5(hast);
   return {
-    html: parse5Serialize(ast),
+    html: processor.stringify(hast),
     notes: processingNotes,
   };
 }
