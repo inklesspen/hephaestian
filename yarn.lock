@@ -3548,6 +3548,11 @@ doctrine@^2.1.0:
   dependencies:
     esutils "^2.0.2"
 
+doctype@^2.0.0:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/doctype/-/doctype-2.0.2.tgz#b791fb52f57f300a3e81d1b2816517c044ff1432"
+  integrity sha512-RuESV/brHB7HGyUWzlHvFaaHQspzld15CC0RG+nzbuD+KQNDvxWmbubGrhqwF0SJqbbEGt8lncSTtghI/vNb6Q==
+
 dom-converter@^0.2:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/dom-converter/-/dom-converter-0.2.0.tgz#6721a9daee2e293682955b6afe416771627bb768"
@@ -9431,6 +9436,15 @@ regjsparser@^0.1.4:
   integrity sha1-fuj4Tcb6eS0/0K4ijSS9lJ6tIFw=
   dependencies:
     jsesc "~0.5.0"
+
+rehype-document@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/rehype-document/-/rehype-document-3.0.0.tgz#1feb359e072d0fd026d6801094f67553566d3e56"
+  integrity sha512-aPGoutPIhN2Ou6hAPUf08OI5rRCETActJj5az8qDt7lFk5oB5cmZCEhdhF2/sRaktGuXi2F/ZP1rrazg5jpLHA==
+  dependencies:
+    doctype "^2.0.0"
+    hastscript "^5.0.0"
+    unist-builder "^1.0.1"
 
 rehype-dom-parse@^1.0.4:
   version "1.0.4"

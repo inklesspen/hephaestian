@@ -57,6 +57,7 @@
     "redux-saga": "^1.0.2",
     "redux-starter-kit": "^0.4.3",
     "rehype": "^7.0.0",
+    "rehype-document": "^3.0.0",
     "rehype-dom-parse": "^1.0.4",
     "rehype-dom-stringify": "^1.0.4",
     "rehype-format": "^2.3.1",
