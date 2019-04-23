@@ -4,10 +4,6 @@ import utilParents from 'unist-util-parents';
 
 import * as cssSelectHastAdapter from './css-select-hast-adapter';
 
-export function isElementNamed(tagName, node) {
-  return utilIs({ type: 'element', tagName }, node);
-}
-
 class AdaptedCssSelect {
   constructor(adapter) {
     this.options = { adapter };
@@ -29,3 +25,55 @@ class AdaptedCssSelect {
 }
 
 export const cssSelect = new AdaptedCssSelect(cssSelectHastAdapter);
+
+const CONTINUE = true;
+const EXIT = false;
+
+export function visitChildrenFirst(tree, test, visitor) {
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    // eslint-disable-next-line no-param-reassign
+    [visitor, test] = [test, null];
+  }
+  function one(node, index, parents) {
+    let result;
+    const lastParent = parents[parents.length - 1] || null;
+
+    if (node.children) {
+      // eslint-disable-next-line no-use-before-define
+      result = all(node.children, parents.concat(node));
+    }
+
+    if (result === EXIT) {
+      return result;
+    }
+
+    if (!test || utilIs(test, node, index, lastParent)) {
+      result = visitor(node, index, lastParent);
+    }
+
+    return result;
+  }
+  function all(children, parents) {
+    const min = -1;
+    const step = 1;
+    let index = (min) + step;
+    let child;
+    let result;
+
+    while (index > min && index < children.length) {
+      child = children[index];
+      result = child && one(child, index, parents);
+
+      if (result === EXIT) {
+        return result;
+      }
+
+      index = typeof result === 'number' ? result : index + step;
+    }
+    return CONTINUE;
+  }
+  one(tree, null, []);
+}
+
+visitChildrenFirst.CONTINUE = CONTINUE;
+visitChildrenFirst.EXIT = EXIT;

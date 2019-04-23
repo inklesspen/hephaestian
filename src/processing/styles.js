@@ -3,6 +3,7 @@ import rehypeParse from 'rehype-parse';
 
 import css from 'css';
 import hastscript from 'hastscript';
+import uscript from 'unist-builder';
 import utilFind from 'unist-util-find';
 import utilIs from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
@@ -16,7 +17,7 @@ import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
 import rehypeParse5Stringify from './rehype-parse5-stringify';
-import { cssSelect } from './util';
+import { cssSelect, visitChildrenFirst } from './util';
 import Note from './notes';
 
 function extractDirectivesAndValues(rule) {
@@ -721,6 +722,50 @@ export class StyleWorkspace {
       return utilVisit.CONTINUE;
     });
   }
+
+  handleLeadingTrailingBisuWhitespace() {
+    const handledElements = ['b', 'i', 's', 'u', 'sup', 'sub'];
+    const predicate = (node =>
+      isElement(node) && handledElements.includes(node.tagName) && node.children.length > 0);
+    // can't use utilVisit because we need to visit children before the node itself.
+    // if a node is a handledElement and the children start with or end with whitespace
+    // then move the whitespace to the parent, as siblings of this.
+
+    visitChildrenFirst(this.hast, predicate, (node, index, parent) => {
+      let offset = 0;
+      if (utilIs('text', node.children[0]) && node.children[0].value.startsWith(' ')) {
+        const oldValue = node.children[0].value;
+        const newValue = oldValue.trimLeft();
+        if (newValue.length > 0) {
+          // eslint-disable-next-line no-param-reassign
+          node.children[0].value = newValue;
+        } else {
+          node.children.splice(0, 1);
+        }
+        const chars = oldValue.substring(0, (oldValue.length - newValue.length));
+        const newTextNode = uscript('text', chars);
+        parent.children.splice(index + offset, 0, newTextNode);
+        offset += 1;
+      }
+      offset += 1;
+      const lastChildIndex = node.children.length - 1;
+      if (utilIs('text', node.children[lastChildIndex]) && node.children[lastChildIndex].value.endsWith(' ')) {
+        const oldValue = node.children[lastChildIndex].value;
+        const newValue = oldValue.trimRight();
+        if (newValue.length > 0) {
+          // eslint-disable-next-line no-param-reassign
+          node.children[lastChildIndex].value = newValue;
+        } else {
+          node.children.splice(lastChildIndex, 1);
+        }
+        const chars = oldValue.substring(newValue.length);
+        const newTextNode = uscript('text', chars);
+        parent.children.splice(index + offset, 0, newTextNode);
+        offset += 1;
+      }
+      return index + offset;
+    });
+  }
 }
 
 /** TODOs
@@ -730,10 +775,8 @@ export class StyleWorkspace {
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
-  * <p> inside <li>?
+  * remove <p> inside <li>?
   * detect <hr> substitutes, like "centered * * *", and convert?
-  *
-  * Add a "what we did" notes section to the style workspace, so we can explain to the user.
   */
 
 export default function cleanStyles(html, notes) {
@@ -763,6 +806,7 @@ export default function cleanStyles(html, notes) {
   ws.handleWhitespaceBetweenParas();
   ws.convertStylesToBisu();
   ws.convertStylesToSupSub();
+  ws.handleLeadingTrailingBisuWhitespace();
   ws.handleMonospaceFonts();
   ws.makeStylesInline();
   ws.removeUnneededSpans();

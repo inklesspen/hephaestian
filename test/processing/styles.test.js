@@ -832,4 +832,76 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+  it('should move leading whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        hscript('b', ' World'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        ' ',
+        hscript('b', 'World'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move leading whitespace out of bisu nodes, even if nested', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        hscript('b', hscript('i', ' World')),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        ' ',
+        hscript('b', hscript('i', 'World')),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move trailing whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello '),
+        'World',
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello'),
+        ' ',
+        'World',
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move trailing whitespace out of bisu nodes, even if nested', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('b', hscript('i', 'Hello ')),
+        'World',
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('b', hscript('i', 'Hello')),
+        ' ',
+        'World',
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });
