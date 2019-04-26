@@ -34,7 +34,7 @@
     "hast-util-select": "^3.0.0",
     "hast-util-to-dom": "^1.1.0",
     "hast-util-to-html": "^5.0.0",
-    "hast-util-to-parse5": "^5.0.0",
+    "hast-util-to-parse5": "^5.1.0",
     "hast-util-to-string": "^1.0.1",
     "hastscript": "^5.0.0",
     "history": "^4.9.0",

@@ -12,8 +12,22 @@ const domPurifyOptions = {
   FORBID_ATTR: ['dir'],
 };
 
+export function roundtripFormat(html) {
+  // this currently exists for use in tests, but may have a non-test use in future
+  // keep the processor structure in sync with makeFullDocument, except
+  // not using rehype-document or fragment=true
+  const processor = unified()
+    .use(rehypeParse)
+    .use(rehypeFormat)
+    .use(rehypeParse5Stringify);
+  return processor.processSync(html).contents;
+}
+
 function makeFullDocument(html) {
   const processor = unified()
+    // Note to self: most invocations of rehypeParse should NOT use fragment=true
+    // this will badly mangle complete doucuments,
+    // but the output of cleanStyles() is always a fragment.
     .use(rehypeParse, { fragment: true })
     .use(rehypeDocument, {
       title: 'Hephaestian document',
@@ -25,7 +39,6 @@ function makeFullDocument(html) {
   return processor.processSync(html).contents;
 }
 
-// eslint-disable-next-line import/prefer-default-export
 export function cleanupRichText(html) {
   const validated = fixhtml(html);
   const cleanedHtml = domPurify.sanitize(validated.html, domPurifyOptions);
