@@ -77,3 +77,7 @@ export function visitChildrenFirst(tree, test, visitor) {
 
 visitChildrenFirst.CONTINUE = CONTINUE;
 visitChildrenFirst.EXIT = EXIT;
+
+export function nodeContainsText(node) {
+  return utilIs('text', node) || (node.children && node.children.some(nodeContainsText));
+}

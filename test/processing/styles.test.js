@@ -626,6 +626,40 @@ describe('StyleWorkspace', () => {
     expect(workspace.notes).toContain(Note.NORMALIZED_FONT_SIZE);
   });
 
+  it('should convert a single font-size style to 1em', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('span', { style: 'font-size: 11pt' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', { style: 'font-size: 11pt' }, 'INITIATE HACK'),
+        hscript('span', { style: 'font-size: 11pt' }, '], with another, smaller, button reading ['),
+        hscript('span', { style: 'font-size: 11pt' }, 'CANCEL'),
+        hscript('span', { style: 'font-size: 11pt' }, '].'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.normalizeFontSizes();
+    expect(workspace.notes).toContain(Note.NORMALIZED_FONT_SIZE);
+    const ruleValues = workspace.styleMap.rules.map(rule => rule.declarations[0].value);
+    expect(ruleValues).toEqual(expect.arrayContaining(['1em']));
+
+    workspace.makeStylesInline();
+    // no font-size styles in the output, because makeStylesInline skips 1em;
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
+        hscript('span', 'INITIATE HACK'),
+        hscript('span', '], with another, smaller, button reading ['),
+        hscript('span', 'CANCEL'),
+        hscript('span', '].'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.NORMALIZED_FONT_SIZE);
+  });
+
   it('should convert font tags to font styles', () => {
     // LibreOffice sometimes uses actual font tags
     // <font face="Gentium"><font size="5" style="font-size: 20pt">Header</font></font>
@@ -716,6 +750,107 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
     expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
+  });
+
+  it('should handle blank lines within paragraphs', () => {
+    // gdocs does _this_ if you use shift-Enter, instead of Enter
+    const texts = [1, 2, 3, 4, 5, 6, 7].map(() => lorem.generateParagraphs(1));
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', [
+          // pretend these spans have styles, because they probably will in the real world
+          hscript('span', texts[0]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[1]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[2]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[3]),
+          // just one line here, due to user error
+          hscript('span', hscript('br')),
+          hscript('span', texts[4]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[5]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[6]),
+        ]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast, [Note.DETECTED_GOOGLE_DOCS]);
+    workspace.handleWhitespaceBetweenParas();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', hscript('span', texts[0])),
+        hscript('p', hscript('span', texts[1])),
+        hscript('p', hscript('span', texts[2])),
+        hscript('p', hscript('span', texts[3])),
+        hscript('p', hscript('span', texts[4])),
+        hscript('p', hscript('span', texts[5])),
+        hscript('p', hscript('span', texts[6])),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.INTER_PARA_SPACING);
+  });
+
+  it('should detect irregular blank lines within paragraphs', () => {
+    // if the number of br tags don't support automatically removing them
+    // we should still log it
+    const texts = [1, 2, 3, 4, 5, 6, 7].map(() => lorem.generateParagraphs(1));
+    const inputHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', [
+          // pretend these spans have styles, because they probably will in the real world
+          hscript('span', texts[0]),
+        ]),
+        hscript('p', [
+          hscript('span', texts[1]),
+        ]),
+        hscript('p', [
+          hscript('span', texts[2]),
+        ]),
+        hscript('p', [
+          hscript('span', texts[3]),
+        ]),
+        hscript('p', [
+          hscript('span', texts[4]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[5]),
+        ]),
+        hscript('p', [
+          hscript('span', texts[6]),
+        ]),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast, [Note.DETECTED_GOOGLE_DOCS]);
+    workspace.handleWhitespaceBetweenParas();
+    const expectedHast = uscript('root', [
+      hscript('div', [
+        hscript('h1', 'Title!'),
+        hscript('p', hscript('span', texts[0])),
+        hscript('p', hscript('span', texts[1])),
+        hscript('p', hscript('span', texts[2])),
+        hscript('p', hscript('span', texts[3])),
+        hscript('p', [
+          hscript('span', texts[4]),
+          hscript('span', hscript('br')),
+          hscript('span', hscript('br')),
+          hscript('span', texts[5]),
+        ]),
+        hscript('p', hscript('span', texts[6])),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+    expect(workspace.notes).toContain(Note.DETECTED_IRREGULAR_INTER_PARA_SPACING);
   });
 
   it('should handle desktop apps\'s blank lines between paragraphs', () => {
@@ -898,6 +1033,24 @@ describe('StyleWorkspace', () => {
     const expectedHast = uscript('root', [
       hscript('p', [
         hscript('b', hscript('i', 'Hello')),
+        ' ',
+        'World',
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move trailing whitespace out of span nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('span', 'Hello '),
+        'World',
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('span', 'Hello'),
         ' ',
         'World',
       ]),

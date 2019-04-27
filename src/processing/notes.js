@@ -20,12 +20,14 @@ const shortExplanations = {
   INTER_PARA_SPACING: 'Removed inter-paragraph blank space',
   MONOSPACE: 'Monospace font usage detected',
   NORMALIZED_FONT_SIZE: 'Font sizes normalized',
+  DETECTED_IRREGULAR_INTER_PARA_SPACING: 'Irregular newlines detected; check paragraph separation',
 };
 
 const noteEntries = qw`
 DETECTED_GOOGLE_DOCS DETECTED_MACOS DETECTED_LIBREOFFICE DETECTED_MSWORD
 PROCESSED_STYLESHEET NARROWED_TO_BODY
 INTER_PARA_SPACING MONOSPACE NORMALIZED_FONT_SIZE
+DETECTED_IRREGULAR_INTER_PARA_SPACING
 `.map(kw => [kw, {
     short: shortExplanations[kw],
   }]);

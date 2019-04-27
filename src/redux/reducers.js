@@ -21,7 +21,8 @@ const markdownValue = createReducer(null, {
 });
 
 const processingNotes = createReducer(null, {
-  [processingNotesChanged]: (state, action) => action.payload,
+  // make notes unique
+  [processingNotesChanged]: (state, action) => Array.from(new Set(action.payload)),
 });
 
 const rootReducer = combineReducers({

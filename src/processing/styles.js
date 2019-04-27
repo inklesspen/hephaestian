@@ -17,7 +17,7 @@ import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
 import rehypeParse5Stringify from './rehype-parse5-stringify';
-import { cssSelect, visitChildrenFirst } from './util';
+import { cssSelect, visitChildrenFirst, nodeContainsText } from './util';
 import Note from './notes';
 
 function extractDirectivesAndValues(rule) {
@@ -387,8 +387,8 @@ export class StyleWorkspace {
     // we're assuming nobody actually uses keyword sizes.
     const fontSizeRules = this.styleMap.rules
       .filter(rule => (rule.declarations[0].property === 'font-size'));
-    // no need to normalize font sizes if there's less than two size rules
-    if (fontSizeRules.length < 2) return;
+    // no need to normalize font sizes if there's no size rules
+    if (fontSizeRules.length === 0) return;
     const fontSizeRuleData = {};
     const totalCharacterCount = charactersInNode(this.hast);
     const unitsFound = [];
@@ -491,6 +491,8 @@ export class StyleWorkspace {
     // so we'll use utilVisit
     const brNodes = [];
     utilVisit(this.hast, node => isElement(node, 'br'), (node, index, parent) => {
+      // if the parent of the <br> is a <p> which contains text, it does not qualify for this
+      if (isElement(parent, 'p') && nodeContainsText(parent)) return utilVisit.CONTINUE;
       const prev = parent.children[index - 1];
       const next = parent.children[index + 1];
       if ([prev, next].every(n => isElement(n, 'p'))) {
@@ -513,7 +515,45 @@ export class StyleWorkspace {
         }
         return utilVisit.CONTINUE;
       });
+    } else if (brNodes.length > 0) {
+      this.notes.push(Note.DETECTED_IRREGULAR_INTER_PARA_SPACING);
     }
+  }
+
+  handleWhitespaceWithinParas() {
+    // in gdocs, if the user hits shift-Enter twice to make a blank line, it comes out as
+    // <p>Text<br><br>Text</p>. Or, worse, if styling is applied,
+    // <p><span>Text</span><span><br></span><span><br></span><span>Text</span></p>
+    const pNodes = cssSelect.query('p', this.hast);
+    const pNodesWithBrs = pNodes.filter(node => cssSelect.queryOne('br', node));
+    if (!(pNodesWithBrs.length > (pNodes.length / 2))) {
+      if (pNodesWithBrs.length > 0) {
+        this.notes.push(Note.DETECTED_IRREGULAR_INTER_PARA_SPACING);
+      }
+      return;
+    }
+    this.notes.push(Note.INTER_PARA_SPACING);
+    pNodesWithBrs.forEach((node) => {
+      const template = hastscript('p');
+      template.properties = { ...node.properties };
+      // eslint-disable-next-line no-param-reassign
+      node.children = node.children.map((child) => {
+        if (!nodeContainsText(child)) {
+          return null;
+        }
+        const newP = { ...template, children: [child] };
+        return newP;
+      }).filter(child => child);
+      // eslint-disable-next-line no-param-reassign
+      node.properties.unpackme = true;
+    });
+    utilVisit(this.hast, node => isElement(node, 'p'), (node, index, parent) => {
+      if (node.properties.unpackme) {
+        parent.children.splice(index, 1, ...node.children);
+        return index;
+      }
+      return utilVisit.CONTINUE;
+    });
   }
 
   handleWhitespaceBetweenParasNested() {
@@ -557,6 +597,8 @@ export class StyleWorkspace {
         }
         return utilVisit.CONTINUE;
       });
+    } else if (brParas.length > 0) {
+      this.notes.push(Note.DETECTED_IRREGULAR_INTER_PARA_SPACING);
     }
   }
 
@@ -592,6 +634,8 @@ export class StyleWorkspace {
         }
         return utilVisit.CONTINUE;
       });
+    } else if (emptyParas.length > 0) {
+      this.notes.push(Note.DETECTED_IRREGULAR_INTER_PARA_SPACING);
     }
   }
 
@@ -599,6 +643,7 @@ export class StyleWorkspace {
     // TODO: refactor both of these together
     if (this.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
       this.handleWhitespaceBetweenParasUnnested();
+      this.handleWhitespaceWithinParas();
     }
     if (
       this.notes.includes(Note.DETECTED_LIBREOFFICE) ||
@@ -724,7 +769,7 @@ export class StyleWorkspace {
   }
 
   handleLeadingTrailingBisuWhitespace() {
-    const handledElements = ['b', 'i', 's', 'u', 'sup', 'sub'];
+    const handledElements = ['b', 'i', 's', 'u', 'sup', 'sub', 'span'];
     const predicate = (node =>
       isElement(node) && handledElements.includes(node.tagName) && node.children.length > 0);
     // can't use utilVisit because we need to visit children before the node itself.
