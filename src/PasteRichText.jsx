@@ -7,10 +7,6 @@ import { processPastedRichText } from './redux/actions';
 import Squire from './Squire';
 
 class PasteRichText extends Component {
-  constructor(props) {
-    super(props);
-    this.editorRef = React.createRef();
-  }
   handlePastedValue(pastedHtml) {
     this.props.dispatch(processPastedRichText(pastedHtml, this.props.history.push));
   }
@@ -25,7 +21,6 @@ class PasteRichText extends Component {
           Paste rich text into this box. Hephaestian will attempt to compensate for fucked up stuff.
         </div>
         <Squire
-          ref={this.editorRef}
           handlePastedValue={newHtml => this.handlePastedValue(newHtml)}
         />
       </div>
