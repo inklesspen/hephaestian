@@ -4,7 +4,7 @@ import { LoremIpsum } from 'lorem-ipsum';
 import rehypeFormat from 'rehype-format';
 import unified from 'unified';
 
-import { removeJunk } from '../../src/processing/cleanup';
+import { removeJunk } from '../../src/processing/removejunk';
 
 const lorem = new LoremIpsum();
 
