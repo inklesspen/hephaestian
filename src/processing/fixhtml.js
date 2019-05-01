@@ -39,12 +39,12 @@ function detectGoogleDocs(hast) {
   // on iOS, however, the root appears to be <p>.
   let foundGuidTag = false;
   utilVisit(hast, (node, _index, parent) => {
-    if (isElement(node) && parent.type === 'root' &&
+    if (isElement(node) && utilIs('root', parent) &&
       dotProp.get(node, 'properties.id', '').startsWith('docs-internal-guid-')) {
       foundGuidTag = true;
       return utilVisit.EXIT;
     }
-    if (utilIs({ type: 'element' }, node)) {
+    if (isElement(node)) {
       return utilVisit.SKIP; // No need to look at children of elements.
     }
     return utilVisit.CONTINUE;
@@ -67,22 +67,38 @@ function detectPasteSource(hast) {
 function fixGoogleDocs(hast) {
   // There are some cleanups required before we can let the DOM touch the HTML.
 
+  // if we return a numerical index, utilVisit will visit the children of the
+  // current node, even if we've replaced the current node with splice
+  // this causes bad behavior if we want to mutate the children of a replaced
+  // node
+  // in order to work around this, we visit in two stages
   utilVisit(hast, (node, index, parent) => {
+    if (!(utilIs('root', node) || utilIs('root', parent))) {
+      return utilVisit.SKIP;
+    }
     // See detectGoogleDocs for the full test, but we don't need to check the id here.
-    if (isElement(node, 'b') && parent.type === 'root') {
+    if (isElement(node, 'b')) {
       parent.children.splice(index, 1, hastscript('div', node.children));
       return index;
     }
-    if (isElement(node, 'meta') && parent.type === 'root') {
+    if (isElement(node, 'meta')) {
       parent.children.splice(index, 1); // remove meta node
       return index;
     }
+
+    return utilVisit.CONTINUE;
+  });
+  utilVisit(hast, (node, index, parent) => {
     // You can't have a <hr> inside a <p>. You just can't.
-    if (isElement(node, 'p')) {
-      if (node.children.length === 1 && isElement(node.children[0], 'hr')) {
-        parent.children.splice(index, 1, ...node.children);
+    if (isElement(node, 'p') && node.children.some(child => isElement(child, 'hr'))) {
+      // eslint-disable-next-line no-param-reassign
+      node.children = node.children.filter(child => !isElement(child, 'hr'));
+      parent.children.splice((index + 1), 0, hastscript('hr'));
+      if (node.children.length === 0) {
+        parent.children.splice(index, 1);
         return index;
       }
+      return index + 1;
     }
     return utilVisit.CONTINUE;
   });
@@ -109,7 +125,7 @@ function pruneNonElementRoots(hast) {
     return;
   }
   // eslint-disable-next-line no-param-reassign
-  hast.children = hast.children.filter(node => utilIs('element', node));
+  hast.children = hast.children.filter(node => isElement(node));
 }
 
 export default function fixhtml(html) {

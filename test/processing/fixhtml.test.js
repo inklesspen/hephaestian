@@ -32,6 +32,22 @@ describe('google docs, macos chrome', () => {
     expect(toDiffableHtml(actual.html)).toEqual(toDiffableHtml(expected.html));
     expect(actual.notes).toEqual(expect.arrayContaining(expected.notes));
   });
+  it('should handle <hr> tags inside <p> tags', () => {
+    const input = `
+    <b style="font-weight:normal;" id="docs-internal-guid-854aeed3-7fff-b376-ec26-0b76e18b46f3">
+    <p><span>Lorem ipsum</span><span><br /></span><span><br /></span><hr /></p>
+    <p><span>Lorem ipsum</span></p>
+    </b>`;
+    const actual = fixhtml(input);
+    const expected = {
+      html: `<div>
+      <p><span>Lorem ipsum</span><span><br /></span><span><br /></span></p><hr>
+      <p><span>Lorem ipsum</span></p>
+      </div>`,
+      notes: [Note.DETECTED_GOOGLE_DOCS],
+    };
+    expect(toDiffableHtml(actual.html)).toEqual(toDiffableHtml(expected.html));
+  });
 });
 
 describe('libreoffice', () => {
