@@ -5,16 +5,10 @@ import { connect } from 'react-redux';
 import unified from 'unified';
 import rehypeToReact from 'rehype-react';
 import rehypeParse from 'rehype-parse';
-import utilFind from 'unist-util-find';
-import isElement from 'hast-util-is-element';
-import unistBuilder from 'unist-builder';
 import styles from './RichTextPreview.module.css';
 import Note from './processing/notes';
+import { getBodyContents } from './processing/util';
 
-function getBodyContents(hast) {
-  const bodyNode = utilFind(hast, node => isElement(node, 'body'));
-  return unistBuilder('root', bodyNode.children);
-}
 
 // eslint-disable-next-line react/prefer-stateless-function
 class RichTextPreview extends Component {

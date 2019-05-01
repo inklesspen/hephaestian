@@ -17,14 +17,8 @@ import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
 import rehypeParse5Stringify from './rehype-parse5-stringify';
-import { cssSelect, visitChildrenFirst, nodeContainsText } from './util';
+import { cssSelect, visitChildrenFirst, nodeContainsText, extractDirectivesAndValues } from './util';
 import Note from './notes';
-
-function extractDirectivesAndValues(rule) {
-  const start = rule.indexOf('{') + 1;
-  const end = rule.lastIndexOf('}');
-  return rule.substring(start, end);
-}
 
 const shorthandProperties = [
   // technically text-decoration is also a shorthand property

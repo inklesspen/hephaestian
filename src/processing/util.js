@@ -1,6 +1,9 @@
 import utilIs from 'unist-util-is';
 import realCssSelect from 'css-select';
 import utilParents from 'unist-util-parents';
+import utilFind from 'unist-util-find';
+import isElement from 'hast-util-is-element';
+import unistBuilder from 'unist-builder';
 
 import * as cssSelectHastAdapter from './css-select-hast-adapter';
 
@@ -80,4 +83,15 @@ visitChildrenFirst.EXIT = EXIT;
 
 export function nodeContainsText(node) {
   return utilIs('text', node) || (node.children && node.children.some(nodeContainsText));
+}
+
+export function getBodyContents(hast) {
+  const bodyNode = utilFind(hast, node => isElement(node, 'body'));
+  return unistBuilder('root', bodyNode.children);
+}
+
+export function extractDirectivesAndValues(rule) {
+  const start = rule.indexOf('{') + 1;
+  const end = rule.lastIndexOf('}');
+  return rule.substring(start, end);
 }
