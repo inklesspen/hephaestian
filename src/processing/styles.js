@@ -133,6 +133,14 @@ class StyleMap extends StylesheetManager {
     this.styleStrings = {};
     this.classNameCounter = counterStart;
   }
+
+  /**
+   * @param {string} className
+   */
+  static isStyleMapClass(className) {
+    return className.startsWith('hephaestian-style-');
+  }
+
   makeClassName() {
     this.classNameCounter += 1;
     return `hephaestian-style-${this.classNameCounter}`;
@@ -199,8 +207,8 @@ export class StyleWorkspace {
       });
     });
     const allowedClasses = Object.keys(this.styleMap.classes);
-    const test = node => isElement(node) && hasProperty(node, 'className');
-    utilVisit(this.hast, test, (node) => {
+    const predicate = node => isElement(node) && hasProperty(node, 'className');
+    utilVisit(this.hast, predicate, (node) => {
       filterClassNameList(node, className => allowedClasses.includes(className));
     });
   }
@@ -728,7 +736,7 @@ export class StyleWorkspace {
     });
   }
 
-  makeStylesInline(filterRules = true) {
+  makeStylesInline(filterRules = true, assignClasses = true) {
     // all other properties have been dealt with
     const allowedProperties = ['font-size', 'text-align', 'color'];
     /* eslint-disable no-param-reassign */
@@ -743,11 +751,17 @@ export class StyleWorkspace {
       cssSelect.query(rule.selectors[0], this.hast).forEach((node) => {
         if (!node.properties.style) node.properties.style = '';
         node.properties.style += inlineStyleString;
+        if (assignClasses) {
+          hastClassList(node).add(declaration.property);
+        }
       });
     });
     const predicate = node => isElement(node) && hasProperty(node, 'className');
     utilVisit(this.hast, predicate, (node) => {
-      delete node.properties.className;
+      filterClassNameList(node, className => !StyleMap.isStyleMapClass(className));
+      if (node.properties.className.length === 0) {
+        delete node.properties.className;
+      }
     });
     /* eslint-enable no-param-reassign */
   }
@@ -810,7 +824,7 @@ export class StyleWorkspace {
 /** TODOs
   *
   * detect font weights and sizes and convert to heading tags, bold tags, etc
-  *  - Scrivener copy-paste implements headings with font-size styles and <b> tags
+  *  - MacOS copy-paste implements headings with font-size styles and <b> tags
   *  - Assume anything with a size style and bold style covering the whole contents
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.

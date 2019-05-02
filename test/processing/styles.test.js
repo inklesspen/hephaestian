@@ -587,9 +587,9 @@ describe('StyleWorkspace', () => {
     const expectedHast = uscript('root', [
       hscript('p', [
         hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
-        hscript('span', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
+        hscript('span.font-size', { style: 'font-size:1.5em;' }, 'INITIATE HACK'),
         hscript('span', '], with another, smaller, button reading ['),
-        hscript('span', { style: 'font-size:0.75em;' }, 'CANCEL'),
+        hscript('span.font-size', { style: 'font-size:0.75em;' }, 'CANCEL'),
         hscript('span', '].'),
       ]),
     ]);
@@ -616,9 +616,9 @@ describe('StyleWorkspace', () => {
     const expectedHast = uscript('root', [
       hscript('p', [
         hscript('span', 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read. On the left was a big button that read ['),
-        hscript('span', { style: 'font-size:1.27273em;' }, 'INITIATE HACK'),
+        hscript('span.font-size', { style: 'font-size:1.27273em;' }, 'INITIATE HACK'),
         hscript('span', '], with another, smaller, button reading ['),
-        hscript('span', { style: 'font-size:0.72727em;' }, 'CANCEL'),
+        hscript('span.font-size', { style: 'font-size:0.72727em;' }, 'CANCEL'),
         hscript('span', '].'),
       ]),
     ]);
@@ -674,7 +674,7 @@ describe('StyleWorkspace', () => {
     workspace.inlineStylesToClassSelectorStyles();
 
     workspace.handleFontTags();
-    workspace.makeStylesInline(false); // preserve all properties
+    workspace.makeStylesInline(false, false); // preserve all properties, no classes
     const expectedHast = uscript('root', [
       hscript('div', [
         hscript('span', { style: 'font-family:Courier Prime,monospace;' }, hscript('span', { style: 'font-size:20pt;' }, 'Header')),
