@@ -32,7 +32,8 @@ function makeFullDocument(html) {
     .use(rehypeParse, { fragment: true })
     .use(rehypeDocument, {
       title: 'Hephaestian document',
-      meta: [{ name: 'generator', content: 'Hephaestian vUNKNOWN' }],
+      // TODO: stop from having to hardcode this version number
+      meta: [{ name: 'generator', content: 'Hephaestian v0.0.1' }],
       responsive: false,
     })
     .use(rehypeFormat)

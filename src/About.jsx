@@ -44,6 +44,7 @@ const body = (
         <li>Font sizes</li>
         <li>Font family/face (limited)</li>
         <li>Horizontal rules</li>
+        <li>(Text color may be supported in the future, but is not currently supported.)</li>
       </ul>
     </section>
     <section>
@@ -74,6 +75,7 @@ const body = (
       </p>
       <ul>
         <li>The bulk of the body text is in normal font style, rather than bold or italic.</li>
+        <li>The bulk of the body text is <b>not</b> in a monospace font such as Courier.</li>
         <li>Paragraphs either always have a blank line separating them, or never do.</li>
         <li>
           All measurements (margins, font sizes, etc) will use the same units, at least

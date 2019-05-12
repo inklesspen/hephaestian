@@ -4,8 +4,10 @@ import Header from './Header';
 import Welcome from './Welcome';
 import About from './About';
 import PasteRichText from './PasteRichText';
+import PasteTextbox from './PasteTextbox';
 import PasteHistory from './PasteHistory';
 import RichTextPreview from './RichTextPreview';
+import Download from './Download';
 import Spinner from './Spinner';
 import styles from './App.module.css';
 
@@ -21,11 +23,13 @@ export default class App extends Component {
 
         <Switch>
           <Route path="/paste/richtext" component={PasteRichText} />
-          <Route path="/paste/:format" component={Welcome} />
+          <Route path="/paste/:format" component={PasteTextbox} />
         </Switch>
         <Route path="/upload/:format" component={Welcome} />
 
         <Route path="/preview" component={RichTextPreview} />
+
+        <Route path="/download/overview" component={Download} />
 
         <Route path="/bug" component={Welcome} />
         <Route path="/pasteHistory" component={PasteHistory} />

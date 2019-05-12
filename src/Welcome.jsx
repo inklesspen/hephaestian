@@ -5,17 +5,19 @@ export default function Welcome(props) {
   const navigate = (path) => {
     props.history.push(path);
   };
+  let debugPasteButton = null;
+  if (process.env.NODE_ENV !== 'production') {
+    debugPasteButton = (
+      <li><button type="button" onClick={() => navigate('/paste/onpaste')}>paste onPaste html</button></li>
+    );
+  }
   return (
     <div>
       Choose:
       <ul>
         <li><button type="button" onClick={() => navigate('/paste/richtext')}>paste rich text</button></li>
-        <li><button type="button" onClick={() => navigate('/paste/html')}>paste html</button></li>
-        <li><button type="button" onClick={() => navigate('/paste/markdown')}>paste markdown</button></li>
-        <li><button type="button" onClick={() => navigate('/upload/html')}>upload html file</button></li>
-        <li><button type="button" onClick={() => navigate('/upload/markdown')}>upload markdown file</button></li>
+        {debugPasteButton}
       </ul>
-      <button type="button" onClick={() => navigate('/preview')}>Preview</button>
     </div>
   );
 }
