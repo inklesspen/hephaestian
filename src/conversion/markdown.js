@@ -28,13 +28,19 @@ function makeBlock(builder) {
 
 // TODO: write some tests for this
 function makeCodeBlocks(mdast) {
+  // in a degenerate case, this can get into an infinite loop, if a child is itself too big
+  // detect that and fail with an error
   const blocks = [];
   let builder = null;
   while (mdast.children.length > 0) {
     if (builder === null) {
       builder = u('root', []);
     }
-    builder.children.push(mdast.children.shift());
+    const currentBlock = mdast.children.shift();
+    if (makeBlock(currentBlock).length >= MAX_CHARS) {
+      return 'Your story\'s Markdown contains blocks which are too big for Discord.';
+    }
+    builder.children.push(currentBlock);
     if (makeBlock(builder).length >= MAX_CHARS) {
       mdast.children.unshift(builder.children.pop());
       blocks.push(makeBlock(builder));

@@ -16,6 +16,7 @@ export default function Welcome(props) {
       Choose:
       <ul>
         <li><button type="button" onClick={() => navigate('/paste/richtext')}>paste rich text</button></li>
+        <li>paste Markdown (coming soon)</li>
         {debugPasteButton}
       </ul>
     </div>
