@@ -32,6 +32,7 @@ ffnet-optimized HTML, ao3-optimized HTML, SB/SV-optimized bbcode, SA-optimized b
 
 standalone web page format, with TOC for headers? might be nice for PCT exchanges
 
+https://github.com/webpack/webpack/issues/237#issuecomment-342129128
 
 Use rehype/remark for HTML/Markdown manipulation.
 https://www.npmjs.com/package/rehype-react
@@ -39,6 +40,9 @@ https://github.com/rehypejs/rehype-format
 https://www.npmjs.com/package/rehype-sanitize
 https://www.npmjs.com/package/remark-stringify
 https://github.com/rehypejs/rehype-remark
+
+https://www.npmjs.com/package/hast-util-from-parse5
+https://www.npmjs.com/package/hast-util-to-parse5
 
 https://github.com/jxnblk/closest-color-keyword/blob/master/index.js
 in combination with https://www.npmjs.com/package/color-string and https://www.npmjs.com/package/color-diff
@@ -56,11 +60,10 @@ forums: sb/sv support 1-7 where 4 is approximately 'normal'; 4 is 15px while nor
  - full set: 9, 10, 12, 15, 18, 22, 26
 SA only supports sizes in custom titles so forget about it.
 
-libreoffice sometimes uses actual font tags, wtf.
-<font face="Gentium"><font size="5" style="font-size: 20pt">The Carpet Merchants</font></font>
-(this sample is copied from an old word doc)
-
 we're not supporting font size keywords, but if we were, https://drafts.csswg.org/css-fonts-3/#font-size-prop has helpful data
 
 TODO: migrate to neutrino 9 and/or away from neutrino
 then use git-revision-webpack-plugin and https://webpack.js.org/loaders/val-loader
+
+<p dir="ltr" style="line-height:1.2;margin-top:0pt;margin-bottom:0pt;border-bottom:solid #000000 0.75pt;">&nbsp;</p>
+for some reason this weird excuse for a <hr> was in a gdoc
