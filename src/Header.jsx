@@ -12,7 +12,6 @@ function Header(props) {
       <h2>I suck at visual design</h2>
       <div>
         <button type="button" onClick={() => props.history.push('/about')}>About</button>
-        <button type="button" onClick={() => props.history.push('/bug')}>Report a bug</button>
         <button type="button" onClick={() => props.history.push('/pasteHistory')}>Show Last Pasted Rich Text</button>
         <button type="button" onClick={() => props.dispatch(resetStateAndHistory(props.history))}>Reset</button>
       </div>

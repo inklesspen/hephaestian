@@ -31,7 +31,6 @@ export default class App extends Component {
 
         <Route path="/download/overview" component={Download} />
 
-        <Route path="/bug" component={Welcome} />
         <Route path="/pasteHistory" component={PasteHistory} />
         <Route path="/spinner" component={Spinner} />
       </div>
