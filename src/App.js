@@ -1,26 +1,38 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from 'react';
+import { Route, Switch } from 'react-router-dom';
+import Header from './Header';
+import Welcome from './Welcome';
+import About from './About';
+import PasteRichText from './PasteRichText';
+import PasteTextbox from './PasteTextbox';
+import PasteHistory from './PasteHistory';
+import RichTextPreview from './RichTextPreview';
+import Download from './Download';
+import Spinner from './Spinner';
+import styles from './App.module.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+// eslint-disable-next-line react/prefer-stateless-function
+export default class App extends Component {
+  render() {
+    return (
+      <div className={styles.App}>
+        <Header />
+        <Route exact path="/" component={Welcome} />
+        <Route path="/about" component={About} />
+
+        <Switch>
+          <Route path="/paste/richtext" component={PasteRichText} />
+          <Route path="/paste/:format" component={PasteTextbox} />
+        </Switch>
+        <Route path="/upload/:format" component={Welcome} />
+
+        <Route path="/preview" component={RichTextPreview} />
+
+        <Route path="/download/overview" component={Download} />
+
+        <Route path="/pasteHistory" component={PasteHistory} />
+        <Route path="/spinner" component={Spinner} />
+      </div>
+    );
+  }
 }
-
-export default App;
