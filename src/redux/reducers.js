@@ -1,7 +1,9 @@
 import { createReducer } from 'redux-starter-kit';
 import { combineReducers } from 'redux';
 
-import { resetState, pasteRichText, htmlValueChanged, markdownValueChanged, processingNotesChanged } from './actions';
+import {
+  resetState, pasteRichText, htmlValueChanged, markdownValueChanged, processingNotesChanged,
+} from './actions';
 
 const pastedRichText = createReducer(null, {
   [pasteRichText]: (state, action) => action.payload,

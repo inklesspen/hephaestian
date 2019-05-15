@@ -14,40 +14,47 @@ class JunkRemover {
     this.hast = hast;
     this.bodyNode = utilFind(hast, node => isElement(node, 'body'));
   }
+
   hasLeadingBrOrWhitespace() {
     const firstChild = this.bodyNode.children[0];
     return isElement(firstChild, 'br') || isWhitespace(firstChild);
   }
+
   removeLeadingBrOrWhitespace() {
     if (this.hasLeadingBrOrWhitespace()) {
       this.bodyNode.children.splice(0, 1);
     }
   }
+
   hasTrailingBrOrWhitespace() {
     const lastChild = this.bodyNode.children[this.bodyNode.children.length - 1];
     return isElement(lastChild, 'br') || isWhitespace(lastChild);
   }
+
   removeTrailingBrOrWhitespace() {
     if (this.hasTrailingBrOrWhitespace()) {
       this.bodyNode.children.splice((this.bodyNode.children.length - 1), 1);
     }
   }
+
   hasUnnecessaryDiv() {
     if (this.bodyNode.children.length > 1) return false;
     const child = this.bodyNode.children[0];
     if (!isElement(child, 'div')) return false;
     return child.children.some(node => isElement(node, ['div', 'p']));
   }
+
   removeUnnecessaryDiv() {
     if (this.hasUnnecessaryDiv()) {
       this.bodyNode.children = this.bodyNode.children[0].children;
     }
   }
+
   run() {
     const changesNeeded = () => (
-      this.hasLeadingBrOrWhitespace() ||
-      this.hasTrailingBrOrWhitespace() ||
-      this.hasUnnecessaryDiv());
+      this.hasLeadingBrOrWhitespace()
+      || this.hasTrailingBrOrWhitespace()
+      || this.hasUnnecessaryDiv());
     while (changesNeeded()) {
       this.removeLeadingBrOrWhitespace();
       this.removeTrailingBrOrWhitespace();

@@ -8,9 +8,12 @@ import Squire from './Squire';
 
 class PasteRichText extends Component {
   handlePastedValue(pastedHtml) {
+    // eslint-disable-next-line react/destructuring-assignment
     this.props.dispatch(processPastedRichText(pastedHtml, this.props.history.push));
   }
+
   goToNext() {
+    // eslint-disable-next-line react/destructuring-assignment
     this.props.dispatch(); // (resetStateAndHistory(this.props.history))
   }
 

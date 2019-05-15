@@ -17,7 +17,9 @@ import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
 
 import rehypeParse5Stringify from './rehype-parse5-stringify';
-import { cssSelect, visitChildrenFirst, nodeContainsText, extractDirectivesAndValues } from './util';
+import {
+  cssSelect, visitChildrenFirst, nodeContainsText, extractDirectivesAndValues,
+} from './util';
 import Note from './notes';
 
 const shorthandProperties = [
@@ -108,14 +110,17 @@ class StylesheetManager {
       this.importSheetString(sheetString);
     }
   }
+
   importSheetString(sheetString) {
     const parsed = css.parse(sheetString);
     const newRules = parsed.stylesheet.rules.map(stripPositionInfo);
     this.stylesheetContainer.stylesheet.rules.push(...newRules);
   }
+
   stringify(compress = true) {
     return css.stringify(this.stylesheetContainer, { compress });
   }
+
   getStyleElement(compress = true) {
     const value = this.stringify(compress);
     return hastscript('style', { type: 'text/css' }, value);
@@ -453,8 +458,8 @@ export class StyleWorkspace {
     const fontFamilyRules = this.styleMap.rules
       .filter(rule => (rule.declarations[0].property === 'font-family'));
     const monospacePredicate = family => (
-      family === 'monospace' || family.startsWith('Courier') || family.endsWith(' Mono') ||
-      ['Consolas', 'Monaco', 'Menlo'].some(name => family === name)
+      family === 'monospace' || family.startsWith('Courier') || family.endsWith(' Mono')
+      || ['Consolas', 'Monaco', 'Menlo'].some(name => family === name)
     );
     const parseFamilyValue = familyValue => splitByCommas(familyValue).map(unquote);
     const monospaceFontFamilyRules = fontFamilyRules
@@ -648,8 +653,8 @@ export class StyleWorkspace {
       this.handleWhitespaceWithinParas();
     }
     if (
-      this.notes.includes(Note.DETECTED_LIBREOFFICE) ||
-      this.notes.includes(Note.DETECTED_MACOS)) {
+      this.notes.includes(Note.DETECTED_LIBREOFFICE)
+      || this.notes.includes(Note.DETECTED_MACOS)) {
       this.handleWhitespaceBetweenParasNested();
     }
     if (this.notes.includes(Note.DETECTED_MSWORD)) {
@@ -778,8 +783,11 @@ export class StyleWorkspace {
 
   handleLeadingTrailingBisuWhitespace() {
     const handledElements = ['b', 'i', 's', 'u', 'sup', 'sub', 'span'];
-    const predicate = (node =>
-      isElement(node) && handledElements.includes(node.tagName) && node.children.length > 0);
+    const predicate = (
+      node => isElement(node)
+      && handledElements.includes(node.tagName)
+      && node.children.length > 0
+    );
     // can't use utilVisit because we need to visit children before the node itself.
     // if a node is a handledElement and the children start with or end with whitespace
     // then move the whitespace to the parent, as siblings of this.

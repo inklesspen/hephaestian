@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import styles from './PasteHistory.module.css';
 
-function PasteHistory(props) {
+function PasteHistory({ pasted }) {
   return (
     <div>
       <div className={styles.PasteHistoryEntry}>
-        <textarea value={props.pasted} readOnly />
+        <textarea value={pasted} readOnly />
       </div>
     </div>
   );

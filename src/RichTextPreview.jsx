@@ -16,13 +16,14 @@ const processor = unified()
 // eslint-disable-next-line react/prefer-stateless-function
 class RichTextPreview extends Component {
   render() {
+    const { history, htmlValue, processingNotes } = this.props;
     const navigate = (path) => {
-      this.props.history.push(path);
+      history.push(path);
     };
 
-    const result = processor.stringify(getBodyContents(processor.parse(this.props.htmlValue)));
+    const result = processor.stringify(getBodyContents(processor.parse(htmlValue)));
 
-    const notes = this.props.processingNotes
+    const notes = processingNotes
       .map(noteName => Note.enumValueOf(noteName)).map(note => (
         <li key={note.ordinal}>{note.short}</li>
       ));

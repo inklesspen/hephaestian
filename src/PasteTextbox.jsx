@@ -9,7 +9,9 @@ class PasteTextbox extends Component {
     super(props);
     this.editorRef = React.createRef();
   }
+
   handlePastedValue(pastedHtml) {
+    // eslint-disable-next-line react/destructuring-assignment
     this.props.dispatch(processPastedRichText(pastedHtml, this.props.history.push));
   }
 

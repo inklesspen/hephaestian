@@ -116,7 +116,8 @@ export function findOne(predicate, nodes) {
     const node = nodes[idx];
     if (predicate(node)) {
       return node;
-    } else if (getChildren(node).length > 0) {
+    }
+    if (getChildren(node).length > 0) {
       const child = findOne(predicate, getChildren(node));
       if (child) {
         return child;

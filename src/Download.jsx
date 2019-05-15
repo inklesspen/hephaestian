@@ -16,11 +16,12 @@ function downloadHtml(contents) {
 // eslint-disable-next-line react/prefer-stateless-function
 class Download extends Component {
   render() {
-    const ffnet = convertFfnet(this.props.htmlValue);
-    const ao3 = convertAo3(this.props.htmlValue);
-    const bbcode = convertBbcode(this.props.htmlValue);
-    const markdown = convertMarkdown(this.props.htmlValue);
-    const discord = convertForDiscord(this.props.htmlValue);
+    const { htmlValue } = this.props;
+    const ffnet = convertFfnet(htmlValue);
+    const ao3 = convertAo3(htmlValue);
+    const bbcode = convertBbcode(htmlValue);
+    const markdown = convertMarkdown(htmlValue);
+    const discord = convertForDiscord(htmlValue);
     return (
       <React.Fragment>
         <h2>FFNet</h2>
@@ -36,8 +37,8 @@ class Download extends Component {
         <h2>Discord</h2>
         <textarea value={discord} readOnly rows="20" cols="60" />
         <h2>Hephaestian</h2>
-        <textarea value={this.props.htmlValue} readOnly rows="20" cols="60" />
-        <button type="button" onClick={() => downloadHtml(this.props.htmlValue)}>Download</button>
+        <textarea value={htmlValue} readOnly rows="20" cols="60" />
+        <button type="button" onClick={() => downloadHtml(htmlValue)}>Download</button>
       </React.Fragment>
     );
   }

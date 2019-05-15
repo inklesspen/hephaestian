@@ -28,4 +28,3 @@ export function extractStyleRuleWithProperty(node, property) {
   }
   return null;
 }
-

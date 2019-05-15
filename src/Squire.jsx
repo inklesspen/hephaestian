@@ -35,12 +35,14 @@ class Squire extends Component {
     super(props);
     this.editorRef = React.createRef();
   }
+
   componentDidMount() {
     this.editor = new SquireEditor(this.editorRef.current, {
       // safe iff htmlValue only ever contains previously-sanitized HTML,
       // such as from being pasted in.
       isSetHTMLSanitized: false,
       sanitizeToDOMFragment: (...args) => extractPastedHtml(
+        // eslint-disable-next-line react/destructuring-assignment
         this.props.handlePastedValue,
         ...args,
       ),

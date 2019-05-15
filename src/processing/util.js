@@ -11,6 +11,7 @@ class AdaptedCssSelect {
   constructor(adapter) {
     this.options = { adapter };
   }
+
   query(query, elems, unwrap = true, removeSubsets = false) {
     const wrapped = Array.isArray(elems) ? elems.map(utilParents) : utilParents(elems);
     let wrappedResult = realCssSelect(query, wrapped, this.options);
@@ -20,6 +21,7 @@ class AdaptedCssSelect {
     if (!unwrap) return wrappedResult;
     return wrappedResult.map(p => p.node);
   }
+
   queryOne(query, elems) {
     const wrapped = Array.isArray(elems) ? elems.map(utilParents) : utilParents(elems);
     const wrappedResult = realCssSelect.selectOne(query, wrapped, this.options);

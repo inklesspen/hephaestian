@@ -39,8 +39,8 @@ function detectGoogleDocs(hast) {
   // on iOS, however, the root appears to be <p>.
   let foundGuidTag = false;
   utilVisit(hast, (node, _index, parent) => {
-    if (isElement(node) && utilIs('root', parent) &&
-      dotProp.get(node, 'properties.id', '').startsWith('docs-internal-guid-')) {
+    if (isElement(node) && utilIs('root', parent)
+      && dotProp.get(node, 'properties.id', '').startsWith('docs-internal-guid-')) {
       foundGuidTag = true;
       return utilVisit.EXIT;
     }

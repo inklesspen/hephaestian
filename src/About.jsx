@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-one-expression-per-line */
 import React from 'react';
 
 const body = (
@@ -27,7 +28,8 @@ const body = (
         <dd>site-tuned HTML (Fanfiction.net does not support font sizes, links, or color)</dd>
         <dt>Archiveofourown.org</dt>
         <dd>site-tuned HTML (AO3 supports sizes and colors via classes provided by work skins)</dd>
-        <dt>SpaceBattles/SufficientVelocity</dt><dd>BBCode</dd>
+        <dt>SpaceBattles/SufficientVelocity</dt>
+        <dd>BBCode</dd>
         <dt>Other</dt>
         <dd>
           Hephaestian will also convert your text into Markdown format, as well as
@@ -105,4 +107,3 @@ const body = (
 export default function About() {
   return body;
 }
-

@@ -9,11 +9,11 @@ import './index.css';
 const root = document.getElementById('root');
 const load = () => render(
   (
-      <Provider store={store}>
-        <Router>
-          <App />
-        </Router>
-      </Provider>
+    <Provider store={store}>
+      <Router>
+        <App />
+      </Router>
+    </Provider>
   ), root,
 );
 
