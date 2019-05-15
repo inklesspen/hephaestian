@@ -67,6 +67,9 @@ function detectPasteSource(hast) {
 function fixGoogleDocs(hast) {
   // There are some cleanups required before we can let the DOM touch the HTML.
 
+  // The below comment describes behavior that should be fixed in the latest
+  // utilVisit. TODO: verify
+
   // if we return a numerical index, utilVisit will visit the children of the
   // current node, even if we've replaced the current node with splice
   // this causes bad behavior if we want to mutate the children of a replaced
