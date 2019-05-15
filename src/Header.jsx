@@ -2,19 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
 import { connect } from 'react-redux';
+import { Button } from 'reactstrap';
 
 import { resetStateAndHistory } from './redux/actions';
 
 function Header(props) {
   return (
     <div>
-      <h1>Hi, this is hephaestian</h1>
-      <h2>I suck at visual design</h2>
-      <div>
-        <button type="button" onClick={() => props.history.push('/about')}>About</button>
-        <button type="button" onClick={() => props.history.push('/pasteHistory')}>Show Last Pasted Rich Text</button>
-        <button type="button" onClick={() => props.dispatch(resetStateAndHistory(props.history))}>Reset</button>
-      </div>
+      <Button color="info" onClick={() => props.history.push('/about')}>About</Button>
+      <Button color="warning" onClick={() => props.history.push('/pasteHistory')}>Show Last Pasted Rich Text</Button>
+      <Button color="danger" onClick={() => props.dispatch(resetStateAndHistory(props.history))}>Reset</Button>
     </div>
   );
 }

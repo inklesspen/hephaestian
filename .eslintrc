@@ -18,6 +18,7 @@
   "rules": {
     "new-cap": "off",
     "object-curly-spacing": "off",
+    "object-curly-newline": [ "error", { "minProperties": 5, "consistent": true }],
     "babel/new-cap": [ "error", { "newIsCap": true } ],
     "babel/object-curly-spacing": [ "error", "always" ],
     "react/react-in-jsx-scope": "off",

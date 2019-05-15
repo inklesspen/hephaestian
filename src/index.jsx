@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter as Router } from 'react-router-dom';
 import App from './App';
 import store from './redux/store';
-import './index.css';
+import 'bootswatch/dist/litera/bootstrap.min.css';
 
 const root = document.getElementById('root');
 const load = () => render(
