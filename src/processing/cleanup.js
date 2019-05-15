@@ -13,6 +13,8 @@ const domPurifyOptions = {
   FORBID_ATTR: ['dir'],
 };
 
+const hephaestianVersionNumber = process.env.REACT_APP_VERSION;
+
 export function roundtripFormat(html) {
   // this currently exists for use in tests, but may have a non-test use in future
   // keep the processor structure in sync with makeFullDocument, except
@@ -32,8 +34,7 @@ function makeFullDocument(html) {
     .use(rehypeParse, { fragment: true })
     .use(rehypeDocument, {
       title: 'Hephaestian document',
-      // TODO: stop from having to hardcode this version number
-      meta: [{ name: 'generator', content: 'Hephaestian v0.0.2' }],
+      meta: [{ name: 'generator', content: `Hephaestian v${hephaestianVersionNumber}` }],
       responsive: false,
     })
     .use(rehypeFormat)
