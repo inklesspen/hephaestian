@@ -1,0 +1,25 @@
+.Dropzone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border-width: 2;
+    border-radius: 2;
+    border-color: #eeeeee;
+    border-style: dashed;
+    background-color: #fafafa;
+    color: #bdbdbd;
+    outline: none;
+    transition: border .24s ease-in-out;
+  }
+
+.ActiveDropzone {
+    border-color: #2196f3;
+}
+.AcceptDropzone {
+    border-color: #00e676;
+}
+.RejectDropzone {
+    border-color: #ff1744;
+}

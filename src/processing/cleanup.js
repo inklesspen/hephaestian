@@ -8,12 +8,11 @@ import fixhtml from './fixhtml';
 import cleanStyles from './styles';
 import rehypeParse5Stringify from './rehype-parse5-stringify';
 import { removeJunkFromHtml } from './removejunk';
+import { rehypeDocumentSettings } from './util';
 
 const domPurifyOptions = {
   FORBID_ATTR: ['dir'],
 };
-
-const hephaestianVersionNumber = process.env.REACT_APP_VERSION;
 
 export function roundtripFormat(html) {
   // this currently exists for use in tests, but may have a non-test use in future
@@ -32,11 +31,7 @@ function makeFullDocument(html) {
     // this will badly mangle complete doucuments,
     // but the output of cleanStyles() is always a fragment.
     .use(rehypeParse, { fragment: true })
-    .use(rehypeDocument, {
-      title: 'Hephaestian document',
-      meta: [{ name: 'generator', content: `Hephaestian v${hephaestianVersionNumber}` }],
-      responsive: false,
-    })
+    .use(rehypeDocument, rehypeDocumentSettings)
     .use(rehypeFormat)
     .use(rehypeParse5Stringify);
   return processor.processSync(html).contents;

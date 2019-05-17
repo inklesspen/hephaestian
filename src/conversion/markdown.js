@@ -55,5 +55,8 @@ export function convertForDiscord(html) {
   const docHast = processor.parse(html);
   const bodyContents = getBodyContents(docHast);
   const converted = processor.runSync(bodyContents);
-  return makeCodeBlocks(converted);
+  if (converted.children.length > 0) {
+    return makeCodeBlocks(converted);
+  }
+  return 'No story text found.';
 }

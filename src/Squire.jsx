@@ -55,7 +55,7 @@ class Squire extends Component {
 
   render() {
     return (
-      <div className={styles.Squire}>
+      <div className="border border-dark rounded">
         <div ref={this.editorRef} className={styles.editor} />
       </div>
     );

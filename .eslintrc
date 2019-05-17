@@ -1,6 +1,6 @@
 {
   "root": true,
-  "plugins": [ "babel", "react", "jest" ],
+  "plugins": [ "babel", "react", "react-hooks", "jest" ],
   "extends": [ "airbnb" ],
   "env": { "es6": true, "browser": true, "commonjs": true, "jest/globals": true },
   "parser": "babel-eslint",
@@ -22,6 +22,9 @@
     "babel/new-cap": [ "error", { "newIsCap": true } ],
     "babel/object-curly-spacing": [ "error", "always" ],
     "react/react-in-jsx-scope": "off",
+    "react/jsx-one-expression-per-line": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
     "jest/no-disabled-tests": "warn",
     "jest/no-focused-tests": "error",
     "jest/no-identical-title": "error",

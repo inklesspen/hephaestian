@@ -3,6 +3,8 @@ import { createAction } from 'redux-starter-kit';
 import * as bluebird from 'bluebird';
 
 import { cleanupRichText } from '../processing/cleanup';
+import convertMarkdown from '../processing/markdown';
+import { isHephaestianGeneratedHtml } from '../processing/util';
 
 export const resetState = createAction('reset');
 export function resetStateAndHistory(history) {
@@ -16,8 +18,6 @@ export const pasteRichText = createAction('richText/paste');
 export const htmlValueChanged = createAction('html/valueChanged');
 export const markdownValueChanged = createAction('markdown/valueChanged');
 export const processingNotesChanged = createAction('processingNotesChanged');
-
-// export const valueProcessed = createAction('richText/processed');
 
 export function processPastedRichText(pastedHtml, historyPush) {
   return (dispatch) => {
@@ -34,15 +34,25 @@ export function processPastedRichText(pastedHtml, historyPush) {
   };
 }
 
-// export function previewResult(history) {
-//   return (dispatch, getState) => {
-//     const currentState = getState();
-//     const format = currentState.activeFormat;
-//     const [value, func] = (format === 'html') ?
-//       [currentState.htmlValue, processHtml] :
-//       [currentState.markdownValue, processMarkdown];
+export function processUploadedHephaestianHtml(html, historyPush) {
+  return (dispatch) => {
+    if (isHephaestianGeneratedHtml(html)) {
+      dispatch(htmlValueChanged(html));
+      historyPush('/download/overview');
+    } else {
+      historyPush('/');
+    }
+  };
+}
 
-//     dispatch(valueProcessed(func(value)));
-//     history.go('/preview');
-//   };
-// }
+export function processMarkdown(markdown, historyPush) {
+  return (dispatch) => {
+    bluebird.delay(0).then(() => {
+      historyPush('/spinner');
+    }).then(() => convertMarkdown(markdown)).then(({ html, notes }) => {
+      dispatch(htmlValueChanged(html));
+      dispatch(processingNotesChanged(notes.map(note => note.name)));
+      historyPush('/preview');
+    });
+  };
+}

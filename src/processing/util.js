@@ -1,3 +1,6 @@
+import unified from 'unified';
+import rehypeParse from 'rehype-parse';
+
 import utilIs from 'unist-util-is';
 import realCssSelect from 'css-select';
 import utilParents from 'unist-util-parents';
@@ -96,4 +99,21 @@ export function extractDirectivesAndValues(rule) {
   const start = rule.indexOf('{') + 1;
   const end = rule.lastIndexOf('}');
   return rule.substring(start, end);
+}
+
+const hephaestianVersionNumber = process.env.REACT_APP_VERSION;
+export const rehypeDocumentSettings = {
+  title: 'Hephaestian document',
+  meta: [{ name: 'generator', content: `Hephaestian v${hephaestianVersionNumber}` }],
+  responsive: false,
+};
+
+const parserProcessor = unified().use(rehypeParse);
+
+export function isHephaestianGeneratedHtml(html) {
+  const hast = parserProcessor.parse(html);
+  const metaNode = utilFind(hast, node => isElement(node, 'meta') && node.properties.name === 'generator');
+  if (!metaNode) return false;
+  const metaContent = metaNode.properties.content;
+  return metaContent.startsWith('Hephaestian');
 }

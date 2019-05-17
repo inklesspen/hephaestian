@@ -69,7 +69,7 @@ transformElement.handlers.h6 = (
 );
 
 // eslint-disable-next-line no-console
-transformElement.unknown = ((node) => { console.log(node); });
+transformElement.unknown = ((node) => { console.log(`Unhandled element ${node.tagName}`); });
 transformElement.handlers.div = (node => u('block', node.children));
 transformElement.handlers.p = transformElement.handlers.div;
 

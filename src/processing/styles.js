@@ -838,6 +838,7 @@ export class StyleWorkspace {
   *    determine priority.
   * remove <p> inside <li>?
   * detect <hr> substitutes, like "centered * * *", and convert?
+  *  - use the commonmark rule for "thematic break", except allow more than three leading spaces
   */
 
 export default function cleanStyles(html, notes) {
