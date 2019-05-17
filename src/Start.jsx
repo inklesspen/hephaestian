@@ -3,13 +3,15 @@ import PropTypes from 'prop-types';
 import { useDropzone } from 'react-dropzone';
 import className from 'class-name';
 import * as Bluebird from 'bluebird';
-// eslint-disable-next-line object-curly-newline, no-unused-vars
-import { Alert, Collapse, Button, Card, CardImg, CardText, CardBody, CardHeader, CardTitle, CardSubtitle, Form, Input } from 'reactstrap';
+import {
+  Alert, Collapse, Button, Card, CardBody, CardHeader, Form, Input,
+} from 'reactstrap';
 import { connect } from 'react-redux';
 
 import { processPastedRichText, processUploadedHephaestianHtml, processMarkdown } from './redux/actions';
 import Squire from './Squire';
 import styles from './Start.module.css';
+import utilStyles from './util.module.css';
 
 function textReaderPromise(file) {
   return new Bluebird((resolve, reject) => {
@@ -87,9 +89,9 @@ class Start extends Component {
     const activate = () => { this.setState({ openCardId: cardId }); };
     return (
       <Card key={cardId}>
-        <CardHeader>
+        <CardHeader className={utilStyles.StretchLinkBoundary}>
           <h5 className="mb-0">
-            <Button color="link" onClick={activate}>{cardTitle}</Button>
+            <Button color="link" onClick={activate} className="stretched-link">{cardTitle}</Button>
           </h5>
         </CardHeader>
         <Collapse isOpen={isOpen}>
