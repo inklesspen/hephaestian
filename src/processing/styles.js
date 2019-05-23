@@ -741,6 +741,22 @@ export class StyleWorkspace {
     });
   }
 
+  normalizeTextAlignRules() {
+    // start -> left, end -> right
+    const textAlignRules = this.styleMap.rules
+      .filter(rule => (rule.declarations[0].property === 'text-align'));
+    [['start', 'left'], ['end', 'right']].forEach(([oldValue, newValue]) => {
+      const oldValueRules = textAlignRules.filter(rule => rule.declarations[0].value === oldValue);
+      const oldValueSelector = oldValueRules.map(r => r.selectors[0]).join(',');
+      const oldValueClasses = oldValueRules.map(r => r.selectors[0].substring(1));
+      const newClass = this.styleMap.addStyle(`text-align:${newValue}`);
+      cssSelect.query(oldValueSelector, this.hast).forEach((node) => {
+        removeClasses(node, oldValueClasses);
+        hastClassList(node).add(newClass);
+      });
+    });
+  }
+
   makeStylesInline(filterRules = true, assignClasses = true) {
     // all other properties have been dealt with
     const allowedProperties = ['font-size', 'text-align', 'color'];
@@ -879,6 +895,7 @@ export default function cleanStyles(html, notes) {
   ws.convertStylesToSupSub();
   ws.handleLeadingTrailingBisuWhitespace();
   ws.handleMonospaceFonts();
+  ws.normalizeTextAlignRules();
   ws.makeStylesInline();
   ws.removeUnneededSpans();
   return {

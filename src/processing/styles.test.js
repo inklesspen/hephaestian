@@ -1072,4 +1072,21 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+  it('should convert text-align:start to left and text-align:end to right', () => {
+    const inputHast = uscript('root', [
+      hscript('p', { style: 'text-align: start' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read.'),
+      hscript('p', { style: 'text-align: end' }, ' On the left was a big button that read [INITIATE HACK.]'),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.normalizeTextAlignRules();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('p.text-align', { style: 'text-align:left;' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read.'),
+      hscript('p.text-align', { style: 'text-align:right;' }, ' On the left was a big button that read [INITIATE HACK.]'),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });
