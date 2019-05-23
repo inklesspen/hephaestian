@@ -827,6 +827,14 @@ export class StyleWorkspace {
       return index + offset;
     });
   }
+
+  stripIds() {
+    const predicate = node => isElement(node) && hasProperty(node, 'id');
+    utilVisit(this.hast, predicate, (node) => {
+      // eslint-disable-next-line no-param-reassign
+      delete node.properties.id;
+    });
+  }
 }
 
 /** TODOs
@@ -850,6 +858,7 @@ export default function cleanStyles(html, notes) {
   const ws = new StyleWorkspace(hast, newNotes); // will mutate hast, newNotes
   ws.inlineStylesToClassSelectorStyles();
   ws.makeSingleDeclarationSingleClassForm();
+  ws.stripIds();
   if (!ws.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
     ws.narrowToBodyNode();
   }

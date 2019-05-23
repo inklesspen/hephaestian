@@ -1057,4 +1057,19 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+  it('should strip ids from tags', () => {
+    const inputHast = uscript('root', [
+      hscript('p', { id: 'sample-id' }, [
+        hscript('span', 'Hello World'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.stripIds();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('span', 'Hello World'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
 });
