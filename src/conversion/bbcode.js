@@ -19,6 +19,12 @@ stringifyElement.unknown = (
   node => `[${node.tagName.toUpperCase()}]${node.children.join('')}[/${node.tagName.toUpperCase()}]`
 );
 stringifyElement.handlers.hr = (() => '[HR]\n\n');
+stringifyElement.handlers.quote = ((node) => {
+  const rawContents = node.children.join('');
+  const trimmed = rawContents.trimEnd();
+  const ending = rawContents.substring(trimmed.length);
+  return `[QUOTE]${trimmed}[/QUOTE]${ending}`;
+});
 
 const stringifyNode = zwitch('type');
 stringifyNode.handlers.root = (node => stringifyChildren(node).children.join(''));

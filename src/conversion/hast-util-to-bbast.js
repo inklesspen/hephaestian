@@ -73,6 +73,8 @@ transformElement.unknown = ((node) => { console.log(`Unhandled element ${node.ta
 transformElement.handlers.div = (node => u('block', node.children));
 transformElement.handlers.p = transformElement.handlers.div;
 
+transformElement.handlers.blockquote = (node => u('element', { tagName: 'quote' }, node.children));
+
 transformElement.handlers.br = (() => u('text', '\n'));
 
 const bisu = (node => u('element', { tagName: node.tagName }, node.children));

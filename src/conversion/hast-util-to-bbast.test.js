@@ -55,6 +55,19 @@ describe('hast-util-to-bbast', () => {
     expect(actual).toEqual(expected);
   });
 
+  it('should handle blockquote tags', () => {
+    const input = uscript('root', [
+      hscript('blockquote', texts[0]),
+    ]);
+    const expected = uscript('root', [
+      uscript('element', { tagName: 'quote' }, [
+        uscript('text', texts[0]),
+      ]),
+    ]);
+    const actual = toBbast(input);
+    expect(actual).toEqual(expected);
+  });
+
   it('should handle hr tags', () => {
     const input = uscript('root', [
       hscript('p', texts[0]),
