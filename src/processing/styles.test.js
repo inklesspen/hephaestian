@@ -985,6 +985,42 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+  it('should move leading newline whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        hscript('b', '\nWorld'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        '\n',
+        hscript('b', 'World'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move leading tab whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        hscript('b', '\tWorld'),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        'Hello',
+        '\t',
+        hscript('b', 'World'),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
   it('should move leading whitespace out of bisu nodes, even if nested', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1016,6 +1052,42 @@ describe('StyleWorkspace', () => {
       hscript('p', [
         hscript('b', 'Hello'),
         ' ',
+        'World',
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move trailing newline whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello\n'),
+        'World',
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello'),
+        '\n',
+        'World',
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+  it('should move trailing tab whitespace out of bisu nodes', () => {
+    const inputHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello\t'),
+        'World',
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.handleLeadingTrailingBisuWhitespace();
+    const expectedHast = uscript('root', [
+      hscript('p', [
+        hscript('b', 'Hello'),
+        '\t',
         'World',
       ]),
     ]);

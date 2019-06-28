@@ -810,9 +810,9 @@ export class StyleWorkspace {
 
     visitChildrenFirst(this.hast, predicate, (node, index, parent) => {
       let offset = 0;
-      if (utilIs('text', node.children[0]) && node.children[0].value.startsWith(' ')) {
+      if (utilIs('text', node.children[0]) && (/^[ \t\n\f\r]/).test(node.children[0].value)) {
         const oldValue = node.children[0].value;
-        const newValue = oldValue.trimLeft();
+        const newValue = oldValue.trimStart();
         if (newValue.length > 0) {
           // eslint-disable-next-line no-param-reassign
           node.children[0].value = newValue;
@@ -826,9 +826,9 @@ export class StyleWorkspace {
       }
       offset += 1;
       const lastChildIndex = node.children.length - 1;
-      if (utilIs('text', node.children[lastChildIndex]) && node.children[lastChildIndex].value.endsWith(' ')) {
+      if (utilIs('text', node.children[lastChildIndex]) && (/[ \t\n\f\r]$/).test(node.children[lastChildIndex].value)) {
         const oldValue = node.children[lastChildIndex].value;
-        const newValue = oldValue.trimRight();
+        const newValue = oldValue.trimEnd();
         if (newValue.length > 0) {
           // eslint-disable-next-line no-param-reassign
           node.children[lastChildIndex].value = newValue;
