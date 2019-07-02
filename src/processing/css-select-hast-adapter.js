@@ -53,7 +53,7 @@ export function getText(node) {
 
   if (isTag(node)) return getText(getChildren(node));
 
-  if (utilIs('text', node)) return node.value;
+  if (utilIs(node, 'text')) return node.value;
 
   return '';
 }

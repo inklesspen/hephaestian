@@ -71,7 +71,7 @@ function removeClasses(node, removeClassNames) {
 const sumReducer = (accumulator, currentValue) => accumulator + currentValue;
 
 function charactersInNode(node) {
-  if (utilIs('text', node)) {
+  if (utilIs(node, 'text')) {
     return node.value.length;
   }
 
@@ -904,7 +904,7 @@ export class StyleWorkspace {
   handleMarkdownThematicBreaks() {
     let handled = false;
     const allowedChars = new Set([...'-_*']);
-    const predicate = node => isElement(node, 'p') && node.children.length === 1 && utilIs('text', node.children[0]);
+    const predicate = node => isElement(node, 'p') && node.children.length === 1 && utilIs(node.children[0], 'text');
     utilVisit(this.hast, predicate, (node, index, parent) => {
       const nodeText = node.children[0].value;
       const textWithoutWhitespace = nodeText.replace(/\s*/g, '');
@@ -933,7 +933,7 @@ export class StyleWorkspace {
 
     visitChildrenFirst(this.hast, predicate, (node, index, parent) => {
       let offset = 0;
-      if (utilIs('text', node.children[0]) && (/^[ \t\n\f\r]/).test(node.children[0].value)) {
+      if (utilIs(node.children[0], 'text') && (/^[ \t\n\f\r]/).test(node.children[0].value)) {
         const oldValue = node.children[0].value;
         const newValue = oldValue.trimStart();
         if (newValue.length > 0) {
@@ -949,7 +949,7 @@ export class StyleWorkspace {
       }
       offset += 1;
       const lastChildIndex = node.children.length - 1;
-      if (utilIs('text', node.children[lastChildIndex]) && (/[ \t\n\f\r]$/).test(node.children[lastChildIndex].value)) {
+      if (utilIs(node.children[lastChildIndex], 'text') && (/[ \t\n\f\r]$/).test(node.children[lastChildIndex].value)) {
         const oldValue = node.children[lastChildIndex].value;
         const newValue = oldValue.trimEnd();
         if (newValue.length > 0) {

@@ -60,7 +60,7 @@ export function visitChildrenFirst(tree, test, visitor) {
       return result;
     }
 
-    if (!test || utilIs(test, node, index, lastParent)) {
+    if (!test || utilIs(node, test, index, lastParent)) {
       result = visitor(node, index, lastParent);
     }
 
@@ -92,7 +92,7 @@ visitChildrenFirst.CONTINUE = CONTINUE;
 visitChildrenFirst.EXIT = EXIT;
 
 export function nodeContainsText(node) {
-  return utilIs('text', node) || (node.children && node.children.some(nodeContainsText));
+  return utilIs(node, 'text') || (node.children && node.children.some(nodeContainsText));
 }
 
 export function getBodyContents(hast) {

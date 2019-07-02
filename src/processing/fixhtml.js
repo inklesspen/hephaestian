@@ -1,5 +1,5 @@
 import unified from 'unified';
-import utilIs from 'unist-util-is';
+import utilIs, { convert as utilIsTest } from 'unist-util-is';
 import utilVisit from 'unist-util-visit';
 import hastscript from 'hastscript';
 import isElement from 'hast-util-is-element';
@@ -10,6 +10,8 @@ import { cssSelect } from './util';
 
 import rehypeHtmlparser2Parse from '../htmlparser2-utils/rehype-htmlparser2-parse';
 import rehypeParse5Stringify from './rehype-parse5-stringify';
+
+const ROOT_TEST = utilIsTest('root');
 
 /*
  * Different rich text engines, different platforms, tons of bad behaviors.
@@ -39,7 +41,7 @@ function detectGoogleDocs(hast) {
   // on iOS, however, the root appears to be <p>.
   let foundGuidTag = false;
   utilVisit(hast, (node, _index, parent) => {
-    if (isElement(node) && utilIs('root', parent)
+    if (isElement(node) && utilIs(parent, ROOT_TEST)
       && dotProp.get(node, 'properties.id', '').startsWith('docs-internal-guid-')) {
       foundGuidTag = true;
       return utilVisit.EXIT;
@@ -76,7 +78,7 @@ function fixGoogleDocs(hast) {
   // node
   // in order to work around this, we visit in two stages
   utilVisit(hast, (node, index, parent) => {
-    if (!(utilIs('root', node) || utilIs('root', parent))) {
+    if (!(utilIs(node, ROOT_TEST) || utilIs(parent, ROOT_TEST))) {
       return utilVisit.SKIP;
     }
     // See detectGoogleDocs for the full test, but we don't need to check the id here.
@@ -124,7 +126,7 @@ function fixMsWord(hast) {
 }
 
 function pruneNonElementRoots(hast) {
-  if (!utilIs('root', hast)) {
+  if (!utilIs(hast, ROOT_TEST)) {
     return;
   }
   // eslint-disable-next-line no-param-reassign

@@ -37,7 +37,7 @@ export const processor = unified()
   .use(rehypeFormat)
   .use(rehypeParse5Stringify);
 
-const htmlPredicate = (node => utilIs('html', node));
+const htmlPredicate = (node => utilIs(node, 'html'));
 
 export function mdastToHast(mdast) {
   const notes = [];
