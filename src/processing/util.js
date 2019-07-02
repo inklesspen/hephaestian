@@ -30,6 +30,11 @@ class AdaptedCssSelect {
     const wrappedResult = realCssSelect.selectOne(query, wrapped, this.options);
     return (wrappedResult ? wrappedResult.node : null);
   }
+
+  hasAny(query, elems) {
+    // if any elements match the query
+    return this.queryOne(query, elems) !== null;
+  }
 }
 
 export const cssSelect = new AdaptedCssSelect(cssSelectHastAdapter);

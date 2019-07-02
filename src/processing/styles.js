@@ -103,6 +103,13 @@ function stripPositionInfo(rule) {
   return rule;
 }
 
+function ensureClassName(node) {
+  if (isElement(node) && !node.properties.className) {
+    // eslint-disable-next-line no-param-reassign
+    node.properties.className = [];
+  }
+}
+
 class StylesheetManager {
   constructor(sheetString) {
     this.stylesheetContainer = makeEmptyStylesheet();
@@ -151,8 +158,8 @@ class StyleMap extends StylesheetManager {
     return `hephaestian-style-${this.classNameCounter}`;
   }
 
-  addStyle(styleString) {
-    if (styleString in this.styleStrings) {
+  addStyle(styleString, forceAdd = false) {
+    if (!forceAdd && styleString in this.styleStrings) {
       return this.styleStrings[styleString];
     }
     const newClassName = this.makeClassName();
@@ -161,6 +168,14 @@ class StyleMap extends StylesheetManager {
     const parsed = css.parse(`.${newClassName} {${styleString}}`);
     this.rules.push(stripPositionInfo(parsed.stylesheet.rules[0]));
     return newClassName;
+  }
+
+  removeStyle(className) {
+    if (!this.classes[className]) return;
+    const styleString = this.classes[className];
+    delete this.classes[className];
+    if (this.styleStrings[styleString] === className) delete this.styleStrings[styleString];
+    this.rules = this.rules.filter(rule => rule.selectors[0] !== `.${className}`);
   }
 }
 
@@ -237,7 +252,90 @@ export class StyleWorkspace {
       // eslint-disable-next-line no-param-reassign
       rule.declarations = filtered;
     });
-    this.styleMap.rules = this.styleMap.rules.filter(rule => rule.declarations.length > 0);
+    this.styleMap.rules.filter(
+      rule => rule.declarations.length === 0,
+    ).map(
+      rule => rule.selectors[0].substring(1),
+    ).forEach((className) => {
+      this.styleMap.removeStyle(className);
+    });
+  }
+
+  pruneUnusedStyles(pruneClassNames = false) {
+    const classesToRemove = [];
+    Object.keys(this.styleMap.classes).forEach((className) => {
+      const selector = `.${className}`;
+      if (!cssSelect.hasAny(selector, this.hast)) {
+        classesToRemove.push(className);
+      }
+    });
+    classesToRemove.forEach((className) => { this.styleMap.removeStyle(className); });
+    if (!pruneClassNames) return;
+    utilVisit(this.hast, node => isElement(node), (node) => {
+      ensureClassName(node);
+      // eslint-disable-next-line no-param-reassign
+      node.properties.className = node.properties.className.filter(
+        className => this.styleMap.classes[className],
+      );
+    });
+  }
+
+  getDeclarationByClassName(className) {
+    return this.styleMap.rules.find(
+      rule => rule.selectors[0] === `.${className}`,
+    ).declarations[0];
+  }
+
+  mergeSharedStyles() {
+    // for each node, if all children have a style, remove it from them and assign it to self
+    // either merging or overwriting depending on the property
+    const predicate = (
+      node => isElement(node)
+      && node.children.length > 0
+      && node.children.every(child => isElement(child))
+    );
+    visitChildrenFirst(this.hast, predicate, (node) => {
+      const childClasses = new Set();
+      node.children.forEach((child) => {
+        ensureClassName(child);
+        child.properties.className.forEach(className => childClasses.add(className));
+      });
+      const mergeClasses = [...childClasses].filter(
+        className => node.children.every(
+          child => child.properties.className.includes(className),
+        ),
+      );
+      mergeClasses.forEach(
+        className => node.children.forEach(
+          child => hastClassList(child).remove(className),
+        ),
+      );
+      // See if mergeClasses overlap with any of the same properties as node's classes
+      const mergeStyles = new Map(
+        mergeClasses.map(className => this.getDeclarationByClassName(className)).map(
+          declaration => [declaration.property, declaration.value],
+        ),
+      );
+      const ownStyles = new Map(
+        node.properties.className.map(className => this.getDeclarationByClassName(className)).map(
+          declaration => [declaration.property, declaration.value],
+        ),
+      );
+      // if (mergeStyles.has('margin-left') && ownStyles.has('margin-left')) {
+      //   // maybe merge?
+      // }
+      const newStyles = new Map([...ownStyles, ...mergeStyles]);
+      const newClasses = [...newStyles].map(
+        ([property, value]) => extractDeclarationText(cssScript.d(property, value)),
+      ).map(
+        styleString => this.styleMap.addStyle(styleString),
+      );
+      // eslint-disable-next-line no-param-reassign
+      node.properties.className = newClasses;
+      // if both mergeClasses and node have margin-left, combine the margins
+      // otherwise mergeClass overrides nodeclass
+    });
+    this.pruneUnusedStyles();
   }
 
   cleanupHeadingStyles() {
@@ -254,9 +352,9 @@ export class StyleWorkspace {
     const removeClassNames = removeClassSelectors.map(s => s.substring(1));
     const selector = `:matches(h1,h2,h3,h4,h5,h6) :matches(${removeClassSelectors.join(',')})`;
     cssSelect.query(selector, this.hast).forEach((node) => {
-      filterClassNameList(node, className => !removeClassNames.includes(className));
       removeClasses(node, removeClassNames);
     });
+    this.pruneUnusedStyles();
   }
 
   cleanupListItemStyles() {
@@ -271,9 +369,9 @@ export class StyleWorkspace {
     const removeClassNames = removeClassSelectors.map(s => s.substring(1));
     const selector = `li:matches(${removeClassSelectors.join(',')})`;
     cssSelect.query(selector, this.hast).forEach((node) => {
-      filterClassNameList(node, className => !removeClassNames.includes(className));
       removeClasses(node, removeClassNames);
     });
+    this.pruneUnusedStyles();
   }
 
   normalizeLeftMargins() {
@@ -347,12 +445,16 @@ export class StyleWorkspace {
         node.tagName = 'blockquote';
       });
     }
-    this.styleMap.rules = this.styleMap.rules.filter(rule => !leftMarginRules.includes(rule));
+    leftMarginRules.map(
+      rule => rule.selectors[0].substring(1),
+    ).forEach((className) => {
+      this.styleMap.removeStyle(className);
+    });
   }
 
   normalizeFontWeights() {
-    const newNormalWeightClass = this.styleMap.addStyle('font-weight: normal');
-    const newBoldWeightClass = this.styleMap.addStyle('font-weight: bold');
+    const newNormalWeightClass = this.styleMap.addStyle('font-weight: normal', true);
+    const newBoldWeightClass = this.styleMap.addStyle('font-weight: bold', true);
     const fontWeightRules = this.styleMap.rules
       .filter(rule => (rule.declarations[0].property === 'font-weight'));
     const normalWeightClassSelectors = [];
@@ -381,8 +483,7 @@ export class StyleWorkspace {
       removeClasses(node, rejectClasses);
       node.properties.className.push(newBoldWeightClass);
     });
-    const rulePredicate = rule => !rejectClasses.includes(rule.selectors[0].substring(1));
-    this.styleMap.rules = this.styleMap.rules.filter(rulePredicate);
+    rejectClasses.forEach((className) => { this.styleMap.removeStyle(className); });
   }
 
   normalizeFontSizes() {
@@ -789,6 +890,30 @@ export class StyleWorkspace {
 
   removeUnneededSpans() {
     utilVisit(this.hast, node => isElement(node, 'span'), (node, index, parent) => {
+      if (parent.children.length === 1 && Object.keys(node.properties).length > 0) {
+        // if this is the only child of the parent, move styles into parent (merging).
+        const parentClasses = hastClassList(parent);
+        ensureClassName(node);
+        node.properties.className.forEach((c) => { parentClasses.add(c); });
+        const merger = new StylesheetManager();
+        if (parent.properties.style) {
+          merger.importSheetString(`body { ${parent.properties.style} }`);
+          merger.importSheetString(`body { ${node.properties.style} }`);
+          const innerRule = merger.stylesheetContainer.stylesheet.rules.pop();
+          const keepRule = merger.stylesheetContainer.stylesheet.rules[0];
+          keepRule.declarations.extend(innerRule.declarations);
+          const seenProperties = new Set();
+          keepRule.declarations = keepRule.declarations.filter((d) => {
+            if (seenProperties.has(d.property)) return false;
+            seenProperties.add(d.property);
+            return true;
+          });
+          // eslint-disable-next-line no-param-reassign
+          parent.properties.style = extractDirectivesAndValues(merger.stringify());
+        }
+        // eslint-disable-next-line no-param-reassign
+        node.properties = {};
+      }
       if (Object.keys(node.properties).length === 0) {
         parent.children.splice(index, 1, ...node.children);
         return index;
@@ -882,10 +1007,12 @@ export default function cleanStyles(html, notes) {
     ws.handleFontTags();
   }
   ws.filterStyleDeclarations();
+  ws.pruneUnusedStyles(true);
   if (ws.notes.includes(Note.DETECTED_GOOGLE_DOCS)) {
     ws.cleanupHeadingStyles();
     ws.cleanupListItemStyles();
   }
+  ws.mergeSharedStyles();
   ws.normalizeLeftMargins();
   ws.normalizeFontWeights();
   ws.normalizeFontSizes();
@@ -898,8 +1025,9 @@ export default function cleanStyles(html, notes) {
   ws.normalizeTextAlignRules();
   ws.makeStylesInline();
   ws.removeUnneededSpans();
+  const newHtml = processor.stringify(hast);
   return {
-    html: processor.stringify(hast),
+    html: newHtml,
     notes: newNotes,
   };
 }

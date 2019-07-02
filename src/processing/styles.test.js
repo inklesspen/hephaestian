@@ -264,28 +264,28 @@ describe('StyleWorkspace', () => {
     const inputHast = uscript('root', [
       hscript('div'),
     ]);
-    const inputRules = [
-      cssScript.r('.hephaestian-style-1', cssScript.d('line-height', '1.38')),
-      cssScript.r('.hephaestian-style-2', cssScript.d('margin-top', '0pt')),
-      cssScript.r('.hephaestian-style-3', cssScript.d('margin-bottom', '0pt')),
-      cssScript.r('.hephaestian-style-4', cssScript.d('text-indent', '36pt')),
-      cssScript.r('.hephaestian-style-5', cssScript.d('font-size', '11pt')),
-      cssScript.r('.hephaestian-style-6', cssScript.d('font-family', 'Arial')),
-      cssScript.r('.hephaestian-style-7', cssScript.d('color', '#000000')),
-      cssScript.r('.hephaestian-style-8', cssScript.d('background-color', 'transparent')),
-      cssScript.r('.hephaestian-style-9', cssScript.d('font-weight', '400')),
-      cssScript.r('.hephaestian-style-10', cssScript.d('font-style', 'normal')),
-      cssScript.r('.hephaestian-style-11', cssScript.d('font-variant', 'normal')),
-      cssScript.r('.hephaestian-style-12', cssScript.d('text-decoration', 'none')),
-      cssScript.r('.hephaestian-style-13', cssScript.d('vertical-align', 'baseline')),
-      cssScript.r('.hephaestian-style-14', cssScript.d('white-space', 'pre')),
-      cssScript.r('.hephaestian-style-15', cssScript.d('white-space', 'pre-wrap')),
-      cssScript.r('.hephaestian-style-16', cssScript.d('vertical-align', 'super')),
-      cssScript.r('.hephaestian-style-17', cssScript.d('vertical-align', 'sub')),
+    const inputStyles = [
+      'line-height: 1.38',
+      'margin-top: 0pt',
+      'margin-bottom: 0pt',
+      'text-indent: 36pt',
+      'font-size: 11pt',
+      'font-family: Arial',
+      'color: #000000',
+      'background-color: transparent',
+      'font-weight: 400',
+      'font-style: normal',
+      'font-variant: normal',
+      'text-decoration: none',
+      'vertical-align: baseline',
+      'white-space: pre',
+      'white-space: pre-wrap',
+      'vertical-align: super',
+      'vertical-align: sub',
     ];
     const workspace = new StyleWorkspace(inputHast);
-    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
-    workspace.styleMap.classNameCounter = inputRules.length;
+    inputStyles.forEach(s => workspace.styleMap.addStyle(s));
+    expect(workspace.styleMap.classNameCounter).toEqual(inputStyles.length);
 
     workspace.filterStyleDeclarations();
     const expectedRules = [
@@ -363,12 +363,8 @@ describe('StyleWorkspace', () => {
         ]),
       ]),
     ]);
-    const inputRules = [
-      cssScript.r('.hephaestian-style-1', cssScript.d('margin-left', '72pt')),
-    ];
     const workspace = new StyleWorkspace(inputHast);
-    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
-    workspace.styleMap.classNameCounter = inputRules.length;
+    workspace.styleMap.addStyle('margin-left: 72pt');
 
     workspace.normalizeLeftMargins();
     const expectedHast = uscript('root', [
@@ -414,13 +410,10 @@ describe('StyleWorkspace', () => {
       hscript('p', { class: 'hephaestian-style-1' }, text),
       hscript('p', { class: 'hephaestian-style-1' }, text),
     ]);
-    const inputRules = [
-      cssScript.r('.hephaestian-style-1', cssScript.d('margin-left', '0.0px')),
-      cssScript.r('.hephaestian-style-2', cssScript.d('margin-left', '36.0px')),
-    ];
     const workspace = new StyleWorkspace(inputHast);
-    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
-    workspace.styleMap.classNameCounter = inputRules.length;
+    workspace.styleMap.addStyle('margin-left: 0.0px');
+    workspace.styleMap.addStyle('margin-left: 36.0px');
+
     workspace.normalizeLeftMargins();
     const expectedHast = uscript('root', [
       hscript('p', { class: '' }, text),
@@ -449,18 +442,13 @@ describe('StyleWorkspace', () => {
       hscript('p', { class: 'hephaestian-style-6' }, texts[6]),
       hscript('p', { class: 'hephaestian-style-7' }, texts[7]),
     ]);
-    const inputRules = [
-      cssScript.r('.hephaestian-style-1', cssScript.d('font-weight', 'normal')),
-      cssScript.r('.hephaestian-style-2', cssScript.d('font-weight', 'bold')),
-      cssScript.r('.hephaestian-style-3', cssScript.d('font-weight', '300')),
-      cssScript.r('.hephaestian-style-4', cssScript.d('font-weight', '400')),
-      cssScript.r('.hephaestian-style-5', cssScript.d('font-weight', '600')),
-      cssScript.r('.hephaestian-style-6', cssScript.d('font-weight', '800')),
-      cssScript.r('.hephaestian-style-7', cssScript.d('font-weight', '900')),
+    const inputStyles = [
+      'font-weight: normal', 'font-weight: bold', 'font-weight: 300',
+      'font-weight: 400', 'font-weight: 600', 'font-weight: 800', 'font-weight: 900',
     ];
     const workspace = new StyleWorkspace(inputHast);
-    workspace.styleMap.stylesheetContainer.stylesheet.rules.push(...inputRules);
-    workspace.styleMap.classNameCounter = inputRules.length;
+    inputStyles.forEach(s => workspace.styleMap.addStyle(s));
+    expect(workspace.styleMap.classNameCounter).toEqual(inputStyles.length);
 
     workspace.normalizeFontWeights();
     const expectedHast = uscript('root', [
@@ -967,6 +955,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move leading whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -985,6 +974,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move leading newline whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1003,6 +993,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move leading tab whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1021,6 +1012,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move leading whitespace out of bisu nodes, even if nested', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1039,6 +1031,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move trailing whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1057,6 +1050,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move trailing newline whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1075,6 +1069,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move trailing tab whitespace out of bisu nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1093,6 +1088,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move trailing whitespace out of bisu nodes, even if nested', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1111,6 +1107,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should move trailing whitespace out of span nodes', () => {
     const inputHast = uscript('root', [
       hscript('p', [
@@ -1129,6 +1126,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should strip ids from tags', () => {
     const inputHast = uscript('root', [
       hscript('p', { id: 'sample-id' }, [
@@ -1144,6 +1142,7 @@ describe('StyleWorkspace', () => {
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
+
   it('should convert text-align:start to left and text-align:end to right', () => {
     const inputHast = uscript('root', [
       hscript('p', { style: 'text-align: start' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read.'),
@@ -1158,6 +1157,71 @@ describe('StyleWorkspace', () => {
     const expectedHast = uscript('root', [
       hscript('p.text-align', { style: 'text-align:left;' }, 'I looked at the screen. It was a standard Hollywood UI, with scrolling windows full of garbage text flowing upwards faster than anyone could read.'),
       hscript('p.text-align', { style: 'text-align:right;' }, ' On the left was a big button that read [INITIATE HACK.]'),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should handle redundant styles', () => {
+    const headline = lorem.generateWords(3);
+    const bodytext = lorem.generateParagraphs(1);
+    const inputHast = uscript('root', [
+      hscript('p', { style: 'margin: 13.0px 0.0px 0.0px 0.0px; font: 18.0px Palatino' }, [
+        hscript('span', { style: 'font-family: \'Palatino\'; font-weight: bold; font-style: normal; font-size: 18.00pt' }, headline),
+      ]),
+      hscript('p', { style: 'margin: 0.0px 0.0px 0.0px 0.0px; text-indent: 18.0px; font: 13.0px Palatino' }, [
+        hscript('span', { style: 'font-family: \'Palatino-Roman\'; font-weight: normal; font-style: normal; font-size: 13.00pt' }, bodytext),
+      ]),
+      hscript('p', { style: 'margin: 0.0px 0.0px 0.0px 0.0px; text-indent: 18.0px; font: 13.0px Palatino' }, [
+        hscript('span', { style: 'font-family: \'Palatino-Roman\'; font-weight: normal; font-style: normal; font-size: 13.00pt' }, bodytext),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.filterStyleDeclarations();
+    workspace.pruneUnusedStyles(true);
+    workspace.mergeSharedStyles();
+    workspace.normalizeFontSizes();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('p.font-size', { style: 'font-size:1.38462em;' }, [
+        hscript('span', {}, headline),
+      ]),
+      hscript('p', {}, [
+        hscript('span', {}, bodytext),
+      ]),
+      hscript('p', {}, [
+        hscript('span', {}, bodytext),
+      ]),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should move span styles to parent', () => {
+    const headline = lorem.generateWords(3);
+    const bodytext = lorem.generateParagraphs(1);
+    const inputHast = uscript('root', [
+      hscript('p', { style: '' }, [
+        hscript('span.font-size', { style: 'font-size:18.00pt;' }, headline),
+      ]),
+      hscript('p', { style: '' }, [
+        hscript('span.font-size', { style: 'font-size:13.00pt;' }, bodytext),
+      ]),
+      hscript('p', { style: '' }, [
+        hscript('span.font-size', { style: 'font-size:13.00pt;' }, bodytext),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.removeUnneededSpans();
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('p.font-size', { style: 'font-size:18.00pt;' }, headline),
+      hscript('p.font-size', { style: 'font-size:13.00pt;' }, bodytext),
+      hscript('p.font-size', { style: 'font-size:13.00pt;' }, bodytext),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });
