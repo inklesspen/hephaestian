@@ -890,36 +890,34 @@ export class StyleWorkspace {
 
   removeUnneededSpans() {
     utilVisit(this.hast, node => isElement(node, 'span'), (node, index, parent) => {
-      if (parent.children.length === 1 && Object.keys(node.properties).length > 0) {
-        // if this is the only child of the parent, move styles into parent (merging).
-        const parentClasses = hastClassList(parent);
-        ensureClassName(node);
-        node.properties.className.forEach((c) => { parentClasses.add(c); });
-        const merger = new StylesheetManager();
-        if (parent.properties.style) {
-          merger.importSheetString(`body { ${parent.properties.style} }`);
-          merger.importSheetString(`body { ${node.properties.style} }`);
-          const innerRule = merger.stylesheetContainer.stylesheet.rules.pop();
-          const keepRule = merger.stylesheetContainer.stylesheet.rules[0];
-          keepRule.declarations.extend(innerRule.declarations);
-          const seenProperties = new Set();
-          keepRule.declarations = keepRule.declarations.filter((d) => {
-            if (seenProperties.has(d.property)) return false;
-            seenProperties.add(d.property);
-            return true;
-          });
-          // eslint-disable-next-line no-param-reassign
-          parent.properties.style = extractDirectivesAndValues(merger.stringify());
-        }
-        // eslint-disable-next-line no-param-reassign
-        node.properties = {};
-      }
-      if (Object.keys(node.properties).length === 0) {
+      // Allow removing spans with no properties, or with an empty className property.
+      const nodePropertyNames = Object.keys(node.properties);
+      if (nodePropertyNames.length === 0 || (nodePropertyNames.length === 1
+          && nodePropertyNames[0] === 'className' && node.properties.className.length === 0)) {
         parent.children.splice(index, 1, ...node.children);
         return index;
       }
       return utilVisit.CONTINUE;
     });
+  }
+
+  handleMarkdownThematicBreaks() {
+    let handled = false;
+    const allowedChars = new Set([...'-_*']);
+    const predicate = node => isElement(node, 'p') && node.children.length === 1 && utilIs('text', node.children[0]);
+    utilVisit(this.hast, predicate, (node, index, parent) => {
+      const nodeText = node.children[0].value;
+      const textWithoutWhitespace = nodeText.replace(/\s*/g, '');
+      const uniqueChars = [...new Set([...textWithoutWhitespace])];
+      if (uniqueChars.length === 1 && allowedChars.has(uniqueChars[0])) {
+        // eslint-disable-next-line no-param-reassign
+        parent.children[index] = hastscript('hr');
+        handled = true;
+      }
+    });
+    if (handled) {
+      this.notes.push(Note.MARKDOWN_STYLE_THEMATIC_BREAKS);
+    }
   }
 
   handleLeadingTrailingBisuWhitespace() {
@@ -986,8 +984,6 @@ export class StyleWorkspace {
   *    of the <p> or <div> is a header. Collect all such headers and compare sizes to
   *    determine priority.
   * remove <p> inside <li>?
-  * detect <hr> substitutes, like "centered * * *", and convert?
-  *  - use the commonmark rule for "thematic break", except allow more than three leading spaces
   */
 
 export default function cleanStyles(html, notes) {
@@ -1023,8 +1019,9 @@ export default function cleanStyles(html, notes) {
   ws.handleLeadingTrailingBisuWhitespace();
   ws.handleMonospaceFonts();
   ws.normalizeTextAlignRules();
-  ws.makeStylesInline();
   ws.removeUnneededSpans();
+  ws.handleMarkdownThematicBreaks();
+  ws.makeStylesInline();
   const newHtml = processor.stringify(hast);
   return {
     html: newHtml,

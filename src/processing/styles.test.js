@@ -1216,12 +1216,51 @@ describe('StyleWorkspace', () => {
     workspace.inlineStylesToClassSelectorStyles();
     workspace.makeSingleDeclarationSingleClassForm();
 
+    workspace.filterStyleDeclarations();
+    workspace.pruneUnusedStyles(true);
+    workspace.mergeSharedStyles();
+
     workspace.removeUnneededSpans();
     workspace.makeStylesInline();
     const expectedHast = uscript('root', [
       hscript('p.font-size', { style: 'font-size:18.00pt;' }, headline),
       hscript('p.font-size', { style: 'font-size:13.00pt;' }, bodytext),
       hscript('p.font-size', { style: 'font-size:13.00pt;' }, bodytext),
+    ]);
+    expect(workspace.hast).toEqual(expectedHast);
+  });
+
+  it('should handle Markdown thematic breaks', () => {
+    const p1 = lorem.generateParagraphs(1);
+    const p2 = lorem.generateParagraphs(1);
+    const inputHast = uscript('root', [
+      hscript('p', {}, [
+        hscript('span', { style: 'font-size:11pt;font-weight:400;font-style:normal;text-decoration:none;' }, p1),
+      ]),
+      hscript('p', { style: 'text-align: center;' }, [
+        hscript('span', { style: 'font-size:11pt;font-weight:400;font-style:normal;text-decoration:none;' }, ' * * * '),
+      ]),
+      hscript('p', {}, [
+        hscript('span', { style: 'font-size:11pt;font-weight:400;font-style:normal;text-decoration:none;' }, p2),
+      ]),
+    ]);
+    const workspace = new StyleWorkspace(inputHast);
+    workspace.inlineStylesToClassSelectorStyles();
+    workspace.makeSingleDeclarationSingleClassForm();
+
+    workspace.filterStyleDeclarations();
+    workspace.pruneUnusedStyles(true);
+    workspace.mergeSharedStyles();
+    workspace.normalizeFontSizes();
+    workspace.removeUnneededSpans();
+
+    workspace.handleMarkdownThematicBreaks();
+
+    workspace.makeStylesInline();
+    const expectedHast = uscript('root', [
+      hscript('p', {}, p1),
+      hscript('hr'),
+      hscript('p', {}, p2),
     ]);
     expect(workspace.hast).toEqual(expectedHast);
   });

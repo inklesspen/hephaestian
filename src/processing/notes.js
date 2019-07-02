@@ -21,6 +21,7 @@ const shortExplanations = {
   MONOSPACE: 'Monospace font usage detected',
   NORMALIZED_FONT_SIZE: 'Font sizes normalized',
   DETECTED_IRREGULAR_INTER_PARA_SPACING: 'Irregular newlines detected; check paragraph separation',
+  MARKDOWN_STYLE_THEMATIC_BREAKS: 'Markdown style thematic breaks (hr) detected',
 
   DETECTED_HTML_IN_MARKDOWN: 'HTML tags detected in Markdown input; they will be ignored',
 };
@@ -29,7 +30,7 @@ const noteEntries = qw`
 DETECTED_GOOGLE_DOCS DETECTED_MACOS DETECTED_LIBREOFFICE DETECTED_MSWORD
 PROCESSED_STYLESHEET NARROWED_TO_BODY
 INTER_PARA_SPACING MONOSPACE NORMALIZED_FONT_SIZE
-DETECTED_IRREGULAR_INTER_PARA_SPACING
+DETECTED_IRREGULAR_INTER_PARA_SPACING MARKDOWN_STYLE_THEMATIC_BREAKS
 DETECTED_HTML_IN_MARKDOWN
 `.map(kw => [kw, {
     short: shortExplanations[kw],
