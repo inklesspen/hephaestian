@@ -1022,7 +1022,7 @@ export default function cleanStyles(html, notes) {
   ws.removeUnneededSpans();
   ws.handleMarkdownThematicBreaks();
   ws.makeStylesInline();
-  const newHtml = processor.stringify(hast);
+  const newHtml = processor.stringify(hast).trim();
   return {
     html: newHtml,
     notes: newNotes,

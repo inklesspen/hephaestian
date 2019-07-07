@@ -2,10 +2,29 @@ import hscript from 'hastscript';
 import uscript from 'unist-builder';
 import { LoremIpsum } from 'lorem-ipsum';
 
-import { cssScript, StyleWorkspace } from './styles';
+import cleanStyles, { cssScript, StyleWorkspace } from './styles';
 import Note from './notes';
 
 const lorem = new LoremIpsum();
+
+describe('integration tests', () => {
+  function loadTestFixtures(path) {
+    /* eslint-disable global-require, import/no-unresolved */
+    /* eslint-disable import/no-webpack-loader-syntax, import/no-dynamic-require */
+    const before = require(`./testsamples/styles/before/${path}.rawhtml`);
+    const after = require(`./testsamples/styles/after/${path}.rawhtml`);
+    /* eslint-enable global-require, import/no-unresolved */
+    /* eslint-enable import/no-webpack-loader-syntax, import/no-dynamic-require */
+    return { before, after };
+  }
+
+  it('should handle bisu in macos rich text', () => {
+    const { before, after } = loadTestFixtures('macos-bisu');
+    const { html: processed, notes: processedNotes } = cleanStyles(before, [Note.DETECTED_MACOS]);
+    expect(processed).toEqual(after);
+    expect(processedNotes).toContain(Note.DETECTED_MACOS);
+  });
+});
 
 describe('StyleWorkspace', () => {
   it('should convert inline styles to class selector styles', () => {

@@ -133,6 +133,7 @@
     "is-wsl": "^2.1.0",
     "jest": "24.8.0",
     "jest-environment-jsdom-fourteen": "0.1.0",
+    "jest-raw-loader": "^1.0.1",
     "jest-resolve": "24.8.0",
     "jest-watch-typeahead": "0.3.1",
     "lorem-ipsum": "^2.0.3",
@@ -172,6 +173,7 @@
     ],
     "testEnvironment": "jest-environment-jsdom-fourteen",
     "transform": {
+      "^.+\\.rawhtml$": "jest-raw-loader",
       "^.+\\.(js|jsx|ts|tsx)$": "<rootDir>/node_modules/babel-jest",
       "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
       "^(?!.*\\.(js|jsx|ts|tsx|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
