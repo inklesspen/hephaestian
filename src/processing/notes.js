@@ -1,14 +1,16 @@
 import qw from 'qw';
 import { Enum } from 'enumify';
 
+/* eslint-disable no-underscore-dangle */
+// no-underscore-dangle is a good rule, but we have to disable it here to work with the superclass.
 class ExtendedArrayEnum extends Enum {
   static _enumValuesFromArray(arr) {
     arr.forEach(([key, val]) => {
-      // eslint-disable-next-line no-underscore-dangle
       this._pushEnumValue(new this(val), key);
     });
   }
 }
+/* eslint-enable no-underscore-dangle */
 
 const shortExplanations = {
   DETECTED_GOOGLE_DOCS: 'Google Docs copy-paste detected',
