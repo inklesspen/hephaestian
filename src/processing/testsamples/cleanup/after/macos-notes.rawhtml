@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8">
+    <title>Hephaestian document</title>
+    <meta name="generator" content="Hephaestian test env">
+  </head>
+  <body><p>Note testing</p>
+    <p><br></p>
+    <p>Normal text</p>
+    <p><b>Bold text</b></p>
+    <p><i>Italic</i></p>
+    <p><b><i>Italibold</i></b></p>
+    <p><u>Underline</u></p>
+    <p><s>Strikethru</s></p>
+    <p><br></p>
+    <p>Normal again</p></body></html>
