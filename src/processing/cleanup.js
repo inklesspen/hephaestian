@@ -12,6 +12,7 @@ import { rehypeDocumentSettings } from './util';
 
 const domPurifyOptions = {
   FORBID_ATTR: ['dir'],
+  WHOLE_DOCUMENT: true,
 };
 
 export function roundtripFormat(html) {

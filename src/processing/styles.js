@@ -988,7 +988,7 @@ export class StyleWorkspace {
 
 export default function cleanStyles(html, notes) {
   const processor = unified()
-    .use(rehypeParse, { fragment: true })
+    .use(rehypeParse)
     .use(rehypeParse5Stringify);
   const hast = processor.parse(html);
   const newNotes = [...notes];
