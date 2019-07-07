@@ -11,10 +11,12 @@ import isElement from 'hast-util-is-element';
 import hasProperty from 'hast-util-has-property';
 import compareFunc from 'compare-func';
 import hastClassList from 'hast-util-class-list';
+import hastToString from 'hast-util-to-string';
 import expandShorthand from 'css-shorthand-expand';
 import parseUnit from 'parse-unit';
 import { splitByCommas } from 'css-list-helpers';
 import unquote from 'unquote';
+import dotProp from 'dot-prop';
 
 import rehypeParse5Stringify from './rehype-parse5-stringify';
 import {
@@ -901,6 +903,29 @@ export class StyleWorkspace {
     });
   }
 
+  handleHorizontalLines() {
+    // Scrivener implements horizontal lines as a paragraph containing a span with
+    // text-decoration: underline. That span may itself contain another span, but its text contents
+    // are just whitespace.
+    this.styleMap.rules.forEach((rule) => {
+      const declaration = rule.declarations[0];
+      const ruleText = [declaration.property, declaration.value].join(': ');
+      if (ruleText !== 'text-decoration: underline') return;
+      const underlineClass = rule.selectors[0].substring(1);
+      const predicate = (node => isElement(node, 'p')
+        && node.children.some(child => isElement(child, 'span')
+          && dotProp.get(child, 'properties.className', []).includes(underlineClass)));
+      utilVisit(this.hast, predicate, (node, index, parent) => {
+        const nodeText = hastToString(node);
+        const textWithoutWhitespace = nodeText.replace(/\s*/g, '');
+        if (nodeText.length > 0 && textWithoutWhitespace.length === 0) {
+          // eslint-disable-next-line no-param-reassign
+          parent.children[index] = hastscript('hr');
+        }
+      });
+    });
+  }
+
   handleMarkdownThematicBreaks() {
     let handled = false;
     const allowedChars = new Set([...'-_*']);
@@ -1001,6 +1026,9 @@ export default function cleanStyles(html, notes) {
   }
   if (ws.notes.includes(Note.DETECTED_LIBREOFFICE)) {
     ws.handleFontTags();
+  }
+  if (ws.notes.includes(Note.DETECTED_MACOS)) {
+    ws.handleHorizontalLines();
   }
   ws.filterStyleDeclarations();
   ws.pruneUnusedStyles(true);

@@ -42,3 +42,18 @@ describe('gdocs', () => {
     expect(actual).toEqual(expected);
   });
 });
+
+describe('scrivener', () => {
+  it('basic macos check', () => {
+    const { before, after } = loadTestFixtures('scrivener-mac');
+    const actual = cleanupRichText(before);
+    const expected = {
+      html: after,
+      notes: [
+        Note.DETECTED_MACOS, Note.PROCESSED_STYLESHEET,
+        Note.NARROWED_TO_BODY, Note.NORMALIZED_FONT_SIZE,
+      ],
+    };
+    expect(actual).toEqual(expected);
+  });
+});
