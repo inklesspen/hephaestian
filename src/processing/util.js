@@ -10,6 +10,8 @@ import unistBuilder from 'unist-builder';
 
 import * as cssSelectHastAdapter from './css-select-hast-adapter';
 
+import { hephaestianVersionNumber } from '../util';
+
 class AdaptedCssSelect {
   constructor(adapter) {
     this.options = { adapter };
@@ -106,10 +108,9 @@ export function extractDirectivesAndValues(rule) {
   return rule.substring(start, end);
 }
 
-const hephaestianVersionNumber = process.env.REACT_APP_VERSION;
 export const rehypeDocumentSettings = {
   title: 'Hephaestian document',
-  meta: [{ name: 'generator', content: `Hephaestian v${hephaestianVersionNumber}` }],
+  meta: [{ name: 'generator', content: `Hephaestian ${hephaestianVersionNumber}` }],
   responsive: false,
 };
 

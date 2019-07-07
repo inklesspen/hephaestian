@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Jumbotron, Button } from 'reactstrap';
-
-const hephaestianVersionNumber = process.env.REACT_APP_VERSION;
+import { hephaestianVersionNumber } from './util';
 
 export default function Welcome(props) {
   const navigate = (path) => {
